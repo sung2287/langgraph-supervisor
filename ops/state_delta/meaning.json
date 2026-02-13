@@ -1,15 +1,6 @@
 {
-  "_note": "DO NOT CHANGE delta_id. Fill human meaning only.",
-  "delta_id": "20260213_043248_78e3a068",
-  "one_liner": "Core를 프랜차이즈 본점 기준선으로 Freeze 선언함",
-  "context": [],
-  "decisions": [],
-  "not_decided": [],
-  "rationale": [],
-  "problems": [],
-  "risks": [],
-  "next_actions": [
-    "Core 기반 확장 전략 수립 또는 LAB PRD 착수"
-  ],
-  "definition_of_done": []
+  "delta_id": null,
+  "one_liner": "",
+  "future_action": "",
+  "decisions": []
 }
