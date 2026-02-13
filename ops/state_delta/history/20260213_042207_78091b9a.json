@@ -1,0 +1,28 @@
+{
+  "delta_id": "20260213_042207_78091b9a",
+  "generated_at": "2026-02-13T04:22:07.317Z",
+  "scope": {
+    "prd_done_add": [
+      "PRD-010"
+    ]
+  },
+  "meta": {
+    "update_reason": "close PRD-010",
+    "git": {
+      "base": "origin/main",
+      "merge_base": "0e67b6e4a5cd212bfcb12cbd18b9d51f558140e9",
+      "head": "0e67b6e4a5cd212bfcb12cbd18b9d51f558140e9",
+      "head_short": "0e67b6e",
+      "branch": "main"
+    },
+    "evidence_digest": {
+      "changed_files_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "typecheck_exit_code": 0,
+      "test_exit_code": 0
+    }
+  },
+  "build": {
+    "typecheck": "PASS",
+    "test": "PASS"
+  }
+}

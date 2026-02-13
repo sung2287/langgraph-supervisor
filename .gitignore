@@ -1,0 +1,20 @@
+node_modules/
+dist/
+build/
+.env
+.DS_Store
+desktop.ini
+**/desktop.ini
+*:Zone.Identifier
+
+# state pipeline artifacts (auto-generated)
+ops/state_candidates/
+docs/MEMORY_Project/state_history/
+docs/MEMORY_Project/status/
+docs/MEMORY_Project/_backup/
+
+# local recovery workspace
+_recovery/
+
+# local evidence bundles (non-canonical)
+ops/evidence/

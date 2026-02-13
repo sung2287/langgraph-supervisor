@@ -1,0 +1,26 @@
+{
+  "name": "writing-system-sandbox",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prd:evidence": "node scripts/prd_collect_evidence.mjs --",
+    "delta:update": "node scripts/delta_update_latest.mjs --",
+    "prd:close": "node scripts/prd_close.mjs --",
+    "state:cycle": "node scripts/state_make_candidate.mjs --",
+    "state:meaning": "node scripts/state_meaning_prompt.mjs",
+    "state:promote": "node scripts/state_promote_candidate.mjs --",
+    "test": "node --import tsx --test $(find src tests -type f -name \"*.test.ts\" 2>/dev/null)",
+    "ci:intent": "node scripts/ci/check-intent.mjs",
+    "ci:static": "node scripts/ci/check-static-rules.mjs && node scripts/ci/check-error-code-literals.mjs",
+    "ci:hold-tests": "node scripts/ci/hold-on-test-changes.mjs",
+    "ci:gate": "npm run ci:hold-tests && npm run ci:intent && npm run ci:static && npm run typecheck && npm test",
+    "arch:check": "depcruise --config .dependency-cruiser.json --output-type err src"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.10",
+    "dependency-cruiser": "^17.3.8",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

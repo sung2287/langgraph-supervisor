@@ -1,0 +1,33 @@
+{
+  "meta": {
+    "update_reason": "smoke: delta script",
+    "evidence": {
+      "prd": "PRD-006",
+      "dir": "ops/evidence/PRD-006/20260210_075017Z"
+    },
+    "git": {
+      "base": "b9b5f33",
+      "merge_base": "b9b5f33ea94dcbd10c2e0a312a657dadf7a52481",
+      "head": "b9b5f33ea94dcbd10c2e0a312a657dadf7a52481",
+      "head_short": "b9b5f33",
+      "branch": "main"
+    },
+    "evidence_digest": {
+      "changed_files_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "typecheck_exit_code": 0,
+      "test_exit_code": 0
+    }
+  },
+  "build": {
+    "typecheck": "PASS",
+    "test": "PASS",
+    "notes": "CI provides signal (typecheck/test). Policy blocking is enforced by Branch Protection + CODEOWNERS (Code Owner approval)."
+  },
+  "scope": {
+    "prd_done_add": [
+      "PRD-006"
+    ]
+  },
+  "delta_id": "20260210_082850_b9b5f33",
+  "generated_at": "2026-02-10T08:28:50.246Z"
+}

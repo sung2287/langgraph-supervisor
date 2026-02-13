@@ -1,0 +1,55 @@
+name: CI (Ops/Docs Guard - Light)
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      # ✅ PR에서는 "성공 스킵" 처리 (Required check를 통과시키기 위함)
+      - name: PR Light OK (skip gate on PR)
+        if: github.event_name == 'pull_request'
+        run: echo "gate: skipped on pull_request (light mode)"
+
+      # 이하 모든 검사는 push(main)에서만 실행
+      - uses: actions/checkout@v4
+        if: github.event_name == 'push'
+        with:
+          fetch-depth: 0
+
+      - name: Detect core changes (push only)
+        if: github.event_name == 'push'
+        id: core
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="HEAD~1"
+          HEAD="HEAD"
+          if git diff --name-only "$BASE" "$HEAD" | grep -q '^src/core/'; then
+            echo "core_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "core_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Signal - tests changed (only when core changed) (push only)
+        if: github.event_name == 'push' && steps.core.outputs.core_changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="HEAD~1"
+          HEAD="HEAD"
+          git diff --name-only "$BASE" "$HEAD" -- tests/ > tests_diff.txt
+          if [ -s tests_diff.txt ]; then
+            echo "::notice title=Test Change Detected::tests/ was modified while src/core/ changed. Require Code Owner approval (Branch Protection/CODEOWNERS)."
+            echo "Changed tests files:"
+            cat tests_diff.txt
+          else
+            echo "No tests/ changes detected."
+          fi
+

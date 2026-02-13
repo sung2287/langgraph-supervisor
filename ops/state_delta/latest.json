@@ -1,0 +1,34 @@
+{
+  "meta": {
+    "update_reason": "close PRD-011",
+    "git": {
+      "base": "origin/main",
+      "merge_base": "a579fb566b1a3a07fc3b94bb9adeb2cac8499d9b",
+      "head": "a579fb566b1a3a07fc3b94bb9adeb2cac8499d9b",
+      "head_short": "a579fb5",
+      "branch": "main"
+    },
+    "evidence_digest": {
+      "changed_files_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "typecheck_exit_code": 0,
+      "test_exit_code": 0
+    }
+  },
+  "build": {
+    "typecheck": "PASS",
+    "test": "PASS"
+  },
+  "scope": {
+    "prd_done_add": [
+      "PRD-007",
+      "PRD-006",
+      "PRD-999",
+      "PRD-008",
+      "PRD-009",
+      "PRD-010",
+      "PRD-011"
+    ]
+  },
+  "delta_id": "20260213_043248_78e3a068",
+  "generated_at": "2026-02-13T04:32:48.643Z"
+}

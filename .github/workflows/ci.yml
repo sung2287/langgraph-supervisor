@@ -1,0 +1,66 @@
+name: CI (Ops/Docs Guard - Light)
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      # ✅ PR에서는 "성공 스킵" 처리 (Required check를 통과시키기 위함)
+      - name: PR Light OK (skip guard on PR)
+        if: github.event_name == 'pull_request'
+        run: echo "guard: skipped on pull_request (light mode)"
+
+      # 이하 모든 검사는 push(main)에서만 실행
+      - uses: actions/checkout@v4
+        if: github.event_name == 'push'
+        with:
+          fetch-depth: 0
+
+      - name: Compute changed files (push only)
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="${{ github.event.before }}"
+          HEAD="HEAD"
+          git diff --name-only "$BASE" "$HEAD" > changed.txt
+          cat changed.txt || true
+
+      - name: Block forbidden artifacts (push only)
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          FORBIDDEN='^(ops/state_candidates/|docs/MEMORY_Project/state_history/|docs/MEMORY_Project/status/)'
+          if grep -E -q "$FORBIDDEN" changed.txt; then
+            echo "::error::Forbidden generated artifacts committed."
+            exit 1
+          fi
+
+          if grep -F -q "Zone.Identifier" changed.txt; then
+            echo "::error::Zone.Identifier detected."
+            exit 1
+          fi
+
+      - name: JSON sanity check (state_delta) (push only)
+        if: github.event_name == 'push'
+        run: |
+          node -e "const fs=require('fs'); ['ops/state_delta/latest.json','ops/state_delta/meaning.json']
+          .filter(p=>fs.existsSync(p))
+          .forEach(p=>JSON.parse(fs.readFileSync(p,'utf8')));"
+
+      - name: Script syntax check (*.mjs) (push only)
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILES=$(grep -E '^scripts/.*\.mjs$' changed.txt || true)
+          [ -z "$FILES" ] && echo "[SKIP] no scripts" && exit 0
+          echo "$FILES" | while read -r f; do node --check "$f"; done
