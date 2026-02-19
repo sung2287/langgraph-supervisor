@@ -5,11 +5,19 @@ function env(name: string, fallback: string): string {
   return typeof v === "string" && v.trim() !== "" ? v : fallback;
 }
 
+function timeoutMsFromEnv(): number {
+  const raw = Number(env("OLLAMA_TIMEOUT_MS", "120000"));
+  if (!Number.isFinite(raw) || raw <= 0) {
+    return 120000;
+  }
+  return raw;
+}
+
 export class LocalLLMClient implements LLMClient {
   async generate(prompt: string): Promise<string> {
     const baseUrl = env("OLLAMA_BASE_URL", "http://localhost:11434");
-    const model = env("OLLAMA_MODEL", "qwen2.5:7b-instruct");
-    const timeoutMs = Number(env("OLLAMA_TIMEOUT_MS", "60000"));
+    const model = env("OLLAMA_MODEL", "qwen3:8b");
+    const timeoutMs = timeoutMsFromEnv();
 
     const controller = new AbortController();
     const t = setTimeout(() => controller.abort(), timeoutMs);

@@ -5,6 +5,9 @@ cd my-new-project
 # 2. Install dependencies
 npm ci
 
+# Optional local LLM env (defaults)
+OLLAMA_MODEL=qwen3:8b OLLAMA_TIMEOUT_MS=120000
+
 # 3. Create first PRD
 # (e.g., docs/prd/PRD-001_<domain_name>.md)
 
