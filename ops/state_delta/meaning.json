@@ -1,13 +1,15 @@
 {
   "_note": "DO NOT CHANGE delta_id. Fill human meaning only.",
-  "delta_id": "20260220_071005_094f4824",
-  "one_liner": "implement repository scanner + snapshot manager (Route B)",
+  "delta_id": "20260220_080701_8ab47303",
+  "one_liner": "File-based session persistence added with strict fail-fast verification and cycle-end-only atomic save (PRD-004)",
   "context": [],
   "decisions": [],
   "not_decided": [],
   "rationale": [],
   "problems": [],
   "risks": [],
-  "next_actions": [],
+  "next_actions": [
+    "Integrate session persistence with supervisor graph entrypoint and validate resume behavior across multi-run scenarios"
+  ],
   "definition_of_done": []
 }
