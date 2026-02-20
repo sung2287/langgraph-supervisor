@@ -1,4 +1,4 @@
-/** Intent: PRD-003 snapshot reuse lock — repo_context stub reuses fresh ops/runtime artifact without rescanning. */
+/** Intent: PRD-003 snapshot reuse lock — fresh snapshot is reused without rescanning or rewriting scan-result.json. */
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -15,6 +15,7 @@ import type {
   PolicyRef,
 } from "../../src/core/plan/plan.types";
 import { registerRepositoryPluginExecutors } from "../../src/plugin/repository/index";
+import { SCAN_RESULT_REL_PATH } from "../../src/plugin/repository/snapshot_manager";
 
 class SpyMemoryRepo {
   readonly writes: MemoryWriteRecord[] = [];
@@ -32,7 +33,7 @@ function makePlanWithRepoStep(): ExecutionPlan {
         kind: "repo_context",
         params: {
           storagePath: "ops/runtime/scan-result.json",
-          freshnessMs: 600000,
+          freshnessMs: 500,
           rescanTag: "#rescan",
           isFullScan: false,
         },
@@ -84,36 +85,69 @@ function registerCoreExecutors() {
   return registry;
 }
 
-test("stub executor: fresh ops/runtime snapshot is reused", async () => {
+test("executor: fresh snapshot reuse does not rewrite scan-result.json", async () => {
   const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), "repo-context-plugin-"));
-  const runtimeDir = path.join(repoRoot, "ops", "runtime");
-  fs.mkdirSync(runtimeDir, { recursive: true });
-  const artifactPath = path.join(runtimeDir, "scan-result.json");
+  try {
+    const scanPath = path.join(repoRoot, ...SCAN_RESULT_REL_PATH.split("/"));
+    fs.mkdirSync(path.dirname(scanPath), { recursive: true });
 
-  const artifact = {
-    scanVersion: "scan-v1",
-    scanVersionMs: 1000,
-    fileIndex: ["README.md"],
-  };
-  fs.writeFileSync(artifactPath, JSON.stringify(artifact), "utf8");
+    const artifact = {
+      schemaVersion: 1,
+      createdAtMs: 1200,
+      scanVersionMs: 1400,
+      ignore: ["node_modules/**", ".git/**", "ops/runtime/**"],
+      fileCount: 2,
+      totalBytes: 20,
+      marker: "fresh-only",
+      fileIndex: [
+        { path: "README.md", size: 10, mtimeMs: 1200 },
+        { path: "src/a.ts", size: 10, mtimeMs: 1201 },
+      ],
+    };
 
-  const plan = makePlanWithRepoStep();
-  const registry = registerCoreExecutors();
-  registerRepositoryPluginExecutors(registry, {
-    repoRoot,
-    nowMs: () => 1500,
-  });
+    const serialized = `${JSON.stringify(artifact, null, 2)}\n`;
+    fs.writeFileSync(scanPath, serialized, "utf8");
+    const beforeContent = fs.readFileSync(scanPath, "utf8");
+    const beforeMtimeMs = fs.statSync(scanPath).mtimeMs;
 
-  const result = await executePlan(
-    plan,
-    makeState(plan, Object.freeze({ policyId: "policy-alpha" })),
-    makeDeps(new SpyMemoryRepo()),
-    registry
-  );
+    const plan = makePlanWithRepoStep();
+    const registry = registerCoreExecutors();
+    registerRepositoryPluginExecutors(registry, {
+      repoRoot,
+      nowMs: () => 1500,
+    });
 
-  assert.equal(result.repoScanVersion, "scan-v1");
-  assert.equal(result.repoContextArtifactPath, path.resolve(repoRoot, "ops/runtime/scan-result.json"));
-  assert.equal(result.repoContextUnavailableReason, undefined);
-  assert.deepEqual(result.stepResults?.repo_context, artifact);
-  assert.equal(result.lastResponse?.startsWith("LLM:"), true);
+    const result = await executePlan(
+      plan,
+      makeState(plan, Object.freeze({ policyId: "policy-alpha" })),
+      makeDeps(new SpyMemoryRepo()),
+      registry
+    );
+
+    const afterText = fs.readFileSync(scanPath, "utf8");
+    const afterMtimeMs = fs.statSync(scanPath).mtimeMs;
+
+    assert.equal(afterText, beforeContent);
+    assert.equal(Math.abs(afterMtimeMs - beforeMtimeMs) <= 1, true);
+
+    const repoContext = result.stepResults?.repo_context as {
+      scanVersionMs: number;
+      fileCount: number;
+      totalBytes: number;
+      truncated: boolean;
+      fileIndex: Array<{ path: string }>;
+    };
+
+    assert.equal(repoContext.scanVersionMs, 1400);
+    assert.equal(repoContext.fileCount, 2);
+    assert.equal(repoContext.totalBytes, 20);
+    assert.equal(repoContext.truncated, false);
+
+    assert.equal(result.repoScanVersion, "1400");
+    assert.equal(result.repoContextArtifactPath, path.resolve(repoRoot, SCAN_RESULT_REL_PATH));
+    assert.equal(result.repoContextUnavailableReason, undefined);
+    assert.equal(result.lastResponse?.startsWith("LLM:"), true);
+  } finally {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  }
 });

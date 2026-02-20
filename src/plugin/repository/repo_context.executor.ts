@@ -1,7 +1,13 @@
-import fs from "node:fs";
-import path from "node:path";
 import type { GraphState, Step } from "../../core/plan/plan.types";
 import type { StepExecutionResult, StepExecutor } from "../../core/plan/step.registry";
+import { scanRepository } from "./scanner";
+import {
+  SCAN_RESULT_REL_PATH,
+  isFresh,
+  readScanResult,
+  resolveScanResultPath,
+  writeScanResult,
+} from "./snapshot_manager";
 
 export interface RepoContextExecutorOptions {
   readonly repoRoot: string;
@@ -13,12 +19,9 @@ interface RepoContextConfig {
   readonly freshnessMs: number;
   readonly rescanTag: string;
   readonly isFullScan: boolean;
-}
-
-interface SnapshotArtifact {
-  readonly scanVersion?: unknown;
-  readonly scanVersionMs?: unknown;
-  readonly [key: string]: unknown;
+  readonly forceRescan: boolean;
+  readonly computeSha1: boolean;
+  readonly maxFileIndexEntries: number;
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -45,101 +48,95 @@ function asBoolean(value: unknown, fallback: boolean): boolean {
 function readConfig(step: Step): RepoContextConfig {
   const params = asRecord(step.params);
   return {
-    storagePath: asString(params.storagePath, "ops/runtime/scan-result.json"),
+    storagePath: asString(params.storagePath, SCAN_RESULT_REL_PATH),
     freshnessMs: asNumber(params.freshnessMs, 600000),
     rescanTag: asString(params.rescanTag, "#rescan"),
     isFullScan: asBoolean(params.isFullScan, false),
+    forceRescan: asBoolean(params.forceRescan, false),
+    computeSha1: asBoolean(params.computeSha1, false),
+    maxFileIndexEntries: asNumber(params.maxFileIndexEntries, 5000),
   };
 }
 
-function resolveStoragePath(repoRoot: string, storagePath: string): string {
-  return path.resolve(repoRoot, storagePath);
-}
-
-function ensureRuntimeScopedPath(repoRoot: string, artifactPath: string): boolean {
-  const runtimeRoot = path.resolve(repoRoot, "ops/runtime");
-  const rel = path.relative(runtimeRoot, artifactPath);
-  return !(rel.startsWith("..") || path.isAbsolute(rel));
-}
-
-function unavailable(reason: string, artifactPath: string): StepExecutionResult {
+function errorResult(message: string): StepExecutionResult {
   return {
-    kind: "unavailable",
-    reason,
-    patch: {
-      repoContextArtifactPath: artifactPath,
-      repoContextUnavailableReason: reason,
-    },
+    kind: "error",
+    error: { message },
   };
-}
-
-function extractScanVersionMs(artifact: SnapshotArtifact): number | undefined {
-  return typeof artifact.scanVersionMs === "number" && Number.isFinite(artifact.scanVersionMs)
-    ? artifact.scanVersionMs
-    : undefined;
-}
-
-function extractScanVersion(artifact: SnapshotArtifact, scanVersionMs: number): string {
-  if (typeof artifact.scanVersion === "string" && artifact.scanVersion.trim() !== "") {
-    return artifact.scanVersion;
-  }
-  return String(scanVersionMs);
 }
 
 export function createRepoContextExecutor(
   options: RepoContextExecutorOptions
 ): StepExecutor {
-  const nowMs = options.nowMs ?? Date.now;
+  const now = options.nowMs ?? Date.now;
 
   return async (state: Readonly<GraphState>, step: Step): Promise<StepExecutionResult> => {
     const config = readConfig(step);
     void config.isFullScan;
 
-    const artifactPath = resolveStoragePath(options.repoRoot, config.storagePath);
-    if (!ensureRuntimeScopedPath(options.repoRoot, artifactPath)) {
+    if (config.storagePath !== SCAN_RESULT_REL_PATH) {
+      return errorResult("INVALID_STORAGE_PATH");
+    }
+
+    const nowMs = now();
+    const artifactPath = resolveScanResultPath(options.repoRoot);
+
+    try {
+      let snapshot = await readScanResult(options.repoRoot);
+
+      const needsRescan =
+        config.forceRescan ||
+        state.userInput.includes(config.rescanTag) ||
+        snapshot === null ||
+        !isFresh(snapshot, nowMs, config.freshnessMs);
+
+      if (needsRescan) {
+        snapshot = await scanRepository({
+          repoRootAbs: options.repoRoot,
+          nowMs,
+          computeSha1: config.computeSha1,
+        });
+        await writeScanResult(options.repoRoot, snapshot);
+      }
+
+      if (snapshot === null) {
+        return {
+          kind: "unavailable",
+          reason: "RESCAN_REQUIRED",
+          patch: {
+            repoContextArtifactPath: artifactPath,
+            repoContextUnavailableReason: "RESCAN_REQUIRED",
+          },
+        };
+      }
+
+      const maxEntries = Math.max(1, Math.floor(config.maxFileIndexEntries));
+      const truncated = snapshot.fileIndex.length > maxEntries;
+      const fileIndex = truncated
+        ? snapshot.fileIndex.slice(0, maxEntries)
+        : snapshot.fileIndex;
+
+      const payload = {
+        schemaVersion: snapshot.schemaVersion,
+        scanVersionMs: snapshot.scanVersionMs,
+        fileCount: snapshot.fileCount,
+        totalBytes: snapshot.totalBytes,
+        truncated,
+        fileIndex,
+      };
+
       return {
-        kind: "error",
-        error: {
-          message: "INVALID_STORAGE_PATH",
+        kind: "ok",
+        data: payload,
+        patch: {
+          repoScanVersion: String(snapshot.scanVersionMs),
+          repoContextArtifactPath: artifactPath,
+          repoContextUnavailableReason: undefined,
         },
       };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return errorResult(message);
     }
-
-    if (state.userInput.includes(config.rescanTag)) {
-      return unavailable("RESCAN_REQUIRED", artifactPath);
-    }
-
-    if (!fs.existsSync(artifactPath)) {
-      return unavailable("RESCAN_REQUIRED", artifactPath);
-    }
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
-    } catch {
-      return unavailable("RESCAN_REQUIRED", artifactPath);
-    }
-
-    const artifact = asRecord(parsed) as SnapshotArtifact;
-    const scanVersionMs = extractScanVersionMs(artifact);
-    if (typeof scanVersionMs !== "number") {
-      return unavailable("RESCAN_REQUIRED", artifactPath);
-    }
-
-    if (nowMs() - scanVersionMs > config.freshnessMs) {
-      return unavailable("RESCAN_REQUIRED", artifactPath);
-    }
-
-    const scanVersion = extractScanVersion(artifact, scanVersionMs);
-
-    return {
-      kind: "ok",
-      data: parsed,
-      patch: {
-        repoScanVersion: scanVersion,
-        repoContextArtifactPath: artifactPath,
-        repoContextUnavailableReason: undefined,
-      },
-    };
   };
 }
