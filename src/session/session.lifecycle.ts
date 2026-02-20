@@ -24,6 +24,10 @@ export async function runSessionLifecycle<TResult>(
   const loadedSession = input.store.load();
   if (shouldVerifyOnBoot(loadedSession)) {
     input.store.verify(input.expectedHash);
+    const state = loadedSession;
+    console.log(
+      `[session] loaded session_state.json (sessionId=${state.sessionId})`
+    );
   }
 
   const runResult = await input.run(loadedSession);
@@ -32,6 +36,12 @@ export async function runSessionLifecycle<TResult>(
       throw new Error("SESSION_LIFECYCLE_ERROR nextSession is required when success=true");
     }
     input.store.save(runResult.nextSession);
+    if (loadedSession === null) {
+      const newState = runResult.nextSession;
+      console.log(
+        `[session] initialized new session (sessionId=${newState.sessionId})`
+      );
+    }
   }
 
   return {
