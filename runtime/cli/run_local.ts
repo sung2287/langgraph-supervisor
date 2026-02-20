@@ -8,6 +8,7 @@ import {
   toCoreExecutionPlan,
   toPolicyRef,
 } from "../graph/graph";
+import { createRuntimeStepExecutorRegistry } from "../graph/step_executor_registry";
 import { InMemoryRepository } from "../memory/in_memory.repository";
 
 const { input, repoPath, phase, profile } = parseRunLocalArgs(
@@ -34,6 +35,10 @@ try {
   const bundles = modeLabel ? interpreter.getBundlesForMode(modeLabel) : [];
   const docBundleRefs = bundles.flatMap((bundle) => bundle.files);
   const memoryRepo = new InMemoryRepository();
+  const stepExecutorRegistry = await createRuntimeStepExecutorRegistry({
+    repoRoot: process.cwd(),
+  });
+
   const result = await runGraph(
     {
       userInput: input,
@@ -42,10 +47,14 @@ try {
       currentMode: resolvedPlan.metadata.modeLabel,
     },
     {
-      llmClient: llm,
-      memoryRepo,
+      planExecutorDeps: {
+        llmClient: llm,
+        memoryRepo,
+      },
+      stepExecutorRegistry,
     }
   );
+
   const output = result.lastResponse ?? "";
   console.log("----- output -----");
   console.log(output);
