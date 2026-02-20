@@ -1,7 +1,11 @@
 import { LocalLLMClient } from "../llm/local.adapter";
 import { OpenAIAdapter } from "../llm/openai.adapter";
 import { RouterLLMClient } from "../llm/router.client";
+import { randomUUID } from "node:crypto";
 import { PolicyInterpreter } from "../../src/policy/interpreter/policy.interpreter";
+import { computeExecutionPlanHash } from "../../src/session/execution_plan_hash";
+import { FileSessionStore } from "../../src/session/file_session.store";
+import { runSessionLifecycle } from "../../src/session/session.lifecycle";
 import { parseRunLocalArgs } from "./run_local.args";
 import {
   runGraph,
@@ -27,7 +31,7 @@ console.log(`mode=local repoPath=${repoPath} phase=${phase} profile=${profile}`)
 
 try {
   const interpreter = new PolicyInterpreter({
-    repoRoot: process.cwd(),
+    repoRoot: repoPath,
     profile,
   });
   const resolvedPlan = interpreter.resolveExecutionPlan({
@@ -37,26 +41,53 @@ try {
   const modeLabel = resolvedPlan.metadata.modeLabel;
   const bundles = modeLabel ? interpreter.getBundlesForMode(modeLabel) : [];
   const docBundleRefs = bundles.flatMap((bundle) => bundle.files);
-  const memoryRepo = new InMemoryRepository();
-  const stepExecutorRegistry = await createRuntimeStepExecutorRegistry({
-    repoRoot: process.cwd(),
+  const executionPlan = toCoreExecutionPlan(resolvedPlan);
+  const policyRef = toPolicyRef(resolvedPlan, docBundleRefs);
+  const expectedHash = computeExecutionPlanHash({
+    executionPlan,
+    policyRef,
   });
 
-  const result = await runGraph(
-    {
-      userInput: input,
-      executionPlan: toCoreExecutionPlan(resolvedPlan),
-      policyRef: toPolicyRef(resolvedPlan, docBundleRefs),
-      currentMode: resolvedPlan.metadata.modeLabel,
+  const sessionStore = new FileSessionStore(repoPath);
+  const memoryRepo = new InMemoryRepository();
+  const stepExecutorRegistry = await createRuntimeStepExecutorRegistry({
+    repoRoot: repoPath,
+  });
+
+  const { result } = await runSessionLifecycle({
+    store: sessionStore,
+    expectedHash,
+    run: async (loadedSession) => {
+      const graphResult = await runGraph(
+        {
+          userInput: input,
+          executionPlan,
+          policyRef,
+          currentMode: resolvedPlan.metadata.modeLabel,
+        },
+        {
+          planExecutorDeps: {
+            llmClient: llm,
+            memoryRepo,
+          },
+          stepExecutorRegistry,
+        }
+      );
+
+      return {
+        success: true,
+        result: graphResult,
+        nextSession: {
+          sessionId: loadedSession?.sessionId ?? randomUUID(),
+          memoryRef: loadedSession?.memoryRef ?? "runtime:memory:in-memory",
+          repoScanVersion:
+            graphResult.repoScanVersion ?? loadedSession?.repoScanVersion ?? "none",
+          lastExecutionPlanHash: expectedHash,
+          updatedAt: loadedSession?.updatedAt ?? "",
+        },
+      };
     },
-    {
-      planExecutorDeps: {
-        llmClient: llm,
-        memoryRepo,
-      },
-      stepExecutorRegistry,
-    }
-  );
+  });
 
   const output = result.lastResponse ?? "";
   console.log("----- output -----");
