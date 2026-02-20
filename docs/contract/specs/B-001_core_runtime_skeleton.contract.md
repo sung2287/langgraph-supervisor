@@ -24,7 +24,14 @@
 - **Direct Directory Access 금지**: Core Engine 내부에서 policy 설정 디렉토리를 직접 참조하거나 파일 시스템을 통해 접근하지 않는다.
 - **Interpreter 실행 금지**: `PolicyInterpreter`는 정책을 해석하여 `executionPlan`을 생성하는 역할에 국한되며, 직접 LLM 호출이나 파일 쓰기 등 runtime 실행 단계를 수행하지 않는다.
 
-## 5. Non-Goals
+## 5. PRD-002 Alignment (Locked)
+- Policy assets live under `policy/profiles/` as defined in PRD-002.
+- Core Engine MUST NOT read any files under `policy/`.
+- Profile selection occurs before Core invocation.
+- Core receives `executionPlan` as a fully resolved artifact.
+- Session persistence is not part of PRD-001 contract.
+
+## 6. Non-Goals
 - 특정 도메인(예: 소프트웨어 개발) 전용 기능 지원
 - 코딩 워크플로우 또는 테스트 자동화 로직의 내장
 - PRD 작성, 문서화 등 특정 태스크를 위한 전용 파이프라인 구축

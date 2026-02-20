@@ -1,11 +1,11 @@
-import type { SupervisorPhase } from "../graph/graph";
+export type RuntimePhase = "PRD_DRAFT" | "IMPLEMENT" | "DIAGNOSE" | "CHAT";
 
 export interface RunLocalArgs {
   input: string;
   projectId: string;
   repoPath: string;
   profile: string;
-  phase: SupervisorPhase;
+  phase: RuntimePhase;
 }
 
 export function parseRunLocalArgs(argv: string[]): RunLocalArgs {
@@ -51,7 +51,7 @@ export function parseRunLocalArgs(argv: string[]): RunLocalArgs {
   const repoPath = repoPathFromFlag ?? process.cwd();
   const profile = profileFromFlag ?? "default";
   const rawPhase = phaseFromFlag ?? "CHAT";
-  const phase: SupervisorPhase =
+  const phase: RuntimePhase =
     rawPhase === "PRD_DRAFT" ||
     rawPhase === "IMPLEMENT" ||
     rawPhase === "DIAGNOSE" ||

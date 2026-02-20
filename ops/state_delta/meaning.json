@@ -1,7 +1,7 @@
 {
   "_note": "DO NOT CHANGE delta_id. Fill human meaning only.",
-  "delta_id": "20260220_042539_5d448954",
-  "one_liner": "Policy Injection Layer MVP 도입 (Core-Policy 분리, profile 기반 executionPlan 주입)",
+  "delta_id": "20260220_050735_ec406c53",
+  "one_liner": "PRD-001: Core를 executionPlan 기반 blind executor로 고정하고 neutrality/immutability/fail-fast를 테스트로 잠금",
   "context": [],
   "decisions": [],
   "not_decided": [],
@@ -9,7 +9,7 @@
   "problems": [],
   "risks": [],
   "next_actions": [
-    "Bundle-first 문서 주입을 executionPlan과 완전 연결"
+    "PRD-002(policy interpreter) 출력 스키마와 step alias를 정리해 plan/types 계약을 더 단단히 고정"
   ],
   "definition_of_done": []
 }

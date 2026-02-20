@@ -15,7 +15,11 @@
 - "Mode 값은 실행 의미를 가지지 않는다."
 - "Policy Profile 선택은 Core의 실행 의미를 변경하지 않는다."
 - "Profile 변경은 executionPlan 생성에만 영향을 주며 Core 구조에는 영향을 주지 않는다."
-- 위 문장이 깨지거나, Core 코드 내에서 특정 모드 또는 프로필 이름을 검색하여 로직을 수행하는 패턴이 발견되면 Intent Drift로 간주한다.
+- "Core Engine never reads policy/profiles directories."
+- "Profile selection logic is outside Core."
+- "Core behavior must not change if profile directory structure changes."
+- "Core never performs file I/O related to policy resolution."
+- 위 문장이 깨지거나, Core 코드 내에서 특정 모드 또는 프로필 이름을 검색하여 로직을 수행하는 패턴이 발견되거나, Core 파일이 policy YAML 파싱 유틸리티를 임포트할 경우 Intent Drift로 간주한다.
 
 ## 4. Future Extension Boundary
 - **Bundle-first 구조 유지**: 문서 번들을 컨텍스트로 주입하는 방식과 Core의 실행 루프가 상호 간섭 없이 공존해야 한다.

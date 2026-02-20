@@ -6,14 +6,14 @@
 - state_version: 2
 - last_updated: 2026-02-20
 - updated_by: human
-- update_reason: close PRD-002
-- latest_delta_id: 20260220_042539_5d448954
+- update_reason: close PRD-001
+- latest_delta_id: 20260220_050735_ec406c53
 - git_base: origin/main
-- git_merge_base: 47be80527f0a2691185fea22e5112c9f812fce3a
-- git_head: f63237d98daa4ab8ad3f7d74a5ae3d290684365f
-- git_head_short: f63237d
-- git_branch: prd-002_policy_injection_layer
-- changed_files_sha256: 187853d20c5b271bbb922e7398811ad983740d5a84a7f632554909fe84dfb742
+- git_merge_base: e286bfec37b40c1d9611f6b4d442d6f09a0f18e0
+- git_head: f6ff22de6badf0477dcac86fc3b663a4c72f0a9e
+- git_head_short: f6ff22d
+- git_branch: prd-001_core_runtime_skeleton
+- changed_files_sha256: cfa732c74b6b10ca7d21786b20fe90b97ff1757761cae89f95d389289990bc95
 - typecheck_exit_code: 0
 - test_exit_code: 0
 
@@ -39,7 +39,7 @@
 - naming_rule: ABCD File Naming (LOCKED)
 
 ## Current Scope (Approved/Done)
-- prd_done: [PRD-002]
+- prd_done: [PRD-002, PRD-001]
 - core_promoted:
   - PRD-001 (Create)
 - core_status: Partial; non-TOC core files removed during cleanup, recovery in progress
