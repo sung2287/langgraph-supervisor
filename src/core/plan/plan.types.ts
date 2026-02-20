@@ -1,6 +1,7 @@
 export interface Step {
-  readonly type: string;
-  readonly params: Readonly<Record<string, unknown>>;
+  readonly kind?: string;
+  readonly type?: string;
+  readonly params?: Readonly<Record<string, unknown>>;
 }
 
 export interface ExecutionPlan {
@@ -19,6 +20,11 @@ export interface GraphState {
   readonly selectedContext?: string;
   readonly assembledPrompt?: string;
   readonly actOutput?: unknown;
+  readonly stepResults?: Readonly<Record<string, unknown>>;
+  readonly stepUnavailableReasons?: Readonly<Record<string, string>>;
+  readonly repoScanVersion?: string;
+  readonly repoContextArtifactPath?: string;
+  readonly repoContextUnavailableReason?: string;
   readonly lastResponse?: string;
   readonly stepLog: readonly string[];
 }
@@ -41,6 +47,7 @@ export interface MemoryRepositoryPort {
 export interface ContextSelectionInput {
   readonly userInput: string;
   readonly loadedDocs: readonly string[];
+  readonly stepResults?: Readonly<Record<string, unknown>>;
   readonly policyRef: PolicyRef;
 }
 
@@ -48,6 +55,7 @@ export interface PromptAssemblyInput {
   readonly userInput: string;
   readonly selectedContext?: string;
   readonly loadedDocs: readonly string[];
+  readonly stepResults?: Readonly<Record<string, unknown>>;
   readonly policyRef: PolicyRef;
 }
 
@@ -61,4 +69,14 @@ export interface PlanExecutorDeps {
     input: ContextSelectionInput
   ) => Promise<string> | string;
   readonly assemblePrompt?: (input: PromptAssemblyInput) => string;
+}
+
+export function resolveStepKind(step: Step): string {
+  if (typeof step.kind === "string" && step.kind.trim() !== "") {
+    return step.kind;
+  }
+  if (typeof step.type === "string" && step.type.trim() !== "") {
+    return step.type;
+  }
+  return "";
 }
