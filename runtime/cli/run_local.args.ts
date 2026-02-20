@@ -1,4 +1,6 @@
-export type RuntimePhase = "PRD_DRAFT" | "IMPLEMENT" | "DIAGNOSE" | "CHAT";
+export const ALLOWED_PHASES = ["default", "diagnose", "implement"] as const;
+
+export type RuntimePhase = (typeof ALLOWED_PHASES)[number];
 
 export interface RunLocalArgs {
   input: string;
@@ -6,6 +8,30 @@ export interface RunLocalArgs {
   repoPath: string;
   profile: string;
   phase: RuntimePhase;
+}
+
+function isRuntimePhase(value: string): value is RuntimePhase {
+  return (ALLOWED_PHASES as readonly string[]).includes(value);
+}
+
+export function normalizePhase(raw: string | undefined): RuntimePhase {
+  const trimmed = typeof raw === "string" ? raw.trim() : "";
+  if (trimmed === "") {
+    return "default";
+  }
+
+  const lowered = trimmed.toLowerCase();
+  if (lowered === "chat") {
+    return "default";
+  }
+
+  if (isRuntimePhase(lowered)) {
+    return lowered;
+  }
+
+  throw new Error(
+    `Unknown phase "${trimmed}". Available phases: ${ALLOWED_PHASES.join(", ")}`
+  );
 }
 
 export function parseRunLocalArgs(argv: string[]): RunLocalArgs {
@@ -38,7 +64,7 @@ export function parseRunLocalArgs(argv: string[]): RunLocalArgs {
     if (token === "--phase") {
       const next = argv[i + 1];
       if (typeof next === "string" && next.trim() !== "") {
-        phaseFromFlag = next.trim().toUpperCase();
+        phaseFromFlag = next.trim();
         i += 1;
         continue;
       }
@@ -50,14 +76,7 @@ export function parseRunLocalArgs(argv: string[]): RunLocalArgs {
   const projectId = positional[1] ?? "default";
   const repoPath = repoPathFromFlag ?? process.cwd();
   const profile = profileFromFlag ?? "default";
-  const rawPhase = phaseFromFlag ?? "CHAT";
-  const phase: RuntimePhase =
-    rawPhase === "PRD_DRAFT" ||
-    rawPhase === "IMPLEMENT" ||
-    rawPhase === "DIAGNOSE" ||
-    rawPhase === "CHAT"
-      ? rawPhase
-      : "CHAT";
+  const phase = normalizePhase(phaseFromFlag);
 
   return { input, projectId, repoPath, profile, phase };
 }
