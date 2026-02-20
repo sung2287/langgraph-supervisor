@@ -16,7 +16,7 @@
     "ci:hold-tests": "node scripts/ci/hold-on-test-changes.mjs",
     "ci:gate": "npm run ci:hold-tests && npm run ci:intent && npm run ci:static && npm run typecheck && npm test",
     "arch:check": "depcruise --config .dependency-cruiser.json --output-type err src",
-    "run:local": "node --import tsx agent/cli/run_local.ts --"
+    "run:local": "node --import tsx runtime/cli/run_local.ts --"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
