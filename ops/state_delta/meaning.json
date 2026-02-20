@@ -1,7 +1,7 @@
 {
   "_note": "DO NOT CHANGE delta_id. Fill human meaning only.",
-  "delta_id": "20260220_050735_ec406c53",
-  "one_liner": "PRD-001: Core를 executionPlan 기반 blind executor로 고정하고 neutrality/immutability/fail-fast를 테스트로 잠금",
+  "delta_id": "20260220_061856_e3015bcc",
+  "one_liner": "PRD-003 repo_context 플러그인을 policy-driven executionPlan + 외부 registry 주입 방식으로 도입해 core 중립성과 optionality를 고정했다.",
   "context": [],
   "decisions": [],
   "not_decided": [],
@@ -9,7 +9,7 @@
   "problems": [],
   "risks": [],
   "next_actions": [
-    "PRD-002(policy interpreter) 출력 스키마와 step alias를 정리해 plan/types 계약을 더 단단히 고정"
+    "PRD-003 Route B로 실제 scanner/snapshot_manager 구현(읽기전용 인덱싱 + scan-result.json 생성) 착수."
   ],
   "definition_of_done": []
 }
