@@ -6,14 +6,14 @@
 - state_version: 2
 - last_updated: 2026-02-20
 - updated_by: human
-- update_reason: close PRD-003
-- latest_delta_id: 20260220_071005_094f4824
+- update_reason: close PRD-004
+- latest_delta_id: 20260220_080701_8ab47303
 - git_base: origin/main
-- git_merge_base: 83dc3faf262ef2c4d4669a4ce1a2cf0d5b2bec20
-- git_head: 7bb7d72736682c54e9c197a5f6b6bef78a1b9ee4
-- git_head_short: 7bb7d72
-- git_branch: prd-003_repository_context_route_b
-- changed_files_sha256: 1942a41a79f6a2928966493236915b92ee06eccab7229e140521661c0120ec3d
+- git_merge_base: 3dd7a6d25bcd917a08959ed3e71cfdd721d724ef
+- git_head: 8052394a860715696f5f856cceaa98a7cfa236ba
+- git_head_short: 8052394
+- git_branch: prd-004_session_persistence
+- changed_files_sha256: 5aee02b6f9b096b0abc0a0851614a54bdd456fc938d99411b86be3c1d02e4c66
 - typecheck_exit_code: 0
 - test_exit_code: 0
 
@@ -39,7 +39,7 @@
 - naming_rule: ABCD File Naming (LOCKED)
 
 ## Current Scope (Approved/Done)
-- prd_done: [PRD-002, PRD-001, PRD-003]
+- prd_done: [PRD-002, PRD-001, PRD-003, PRD-004]
 - core_promoted:
   - PRD-001 (Create)
 - core_status: Partial; non-TOC core files removed during cleanup, recovery in progress
