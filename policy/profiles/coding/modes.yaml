@@ -10,3 +10,19 @@ modes:
         params: {}
       - type: "memory_write"
         params: {}
+  - id: "implement"
+    plan:
+      - type: "recall"
+        params: {}
+      - kind: "repo_context"
+        params:
+          storagePath: "ops/runtime/scan-result.json"
+          freshnessMs: 600000
+          rescanTag: "#rescan"
+          isFullScan: false
+      - type: "assemble_prompt"
+        params: {}
+      - type: "llm_call"
+        params: {}
+      - type: "memory_write"
+        params: {}

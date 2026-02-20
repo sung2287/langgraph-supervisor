@@ -1,5 +1,5 @@
 version: "1.0"
 triggers:
   - condition: "implement"
-    target_mode: "default"
+    target_mode: "implement"
     type: "SOFT"

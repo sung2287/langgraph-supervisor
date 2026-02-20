@@ -1,8 +1,9 @@
-/** Intent: PRD-001 core runtime skeleton lock — executor neutrality, strict step execution, and policyRef immutability. */
+/** Intent: PRD-001/003 core runtime lock — registry-dispatched execution, neutrality to currentMode, and immutable policyRef handling. */
 import test from "node:test";
 import assert from "node:assert/strict";
 import { executePlan } from "../../src/core/plan/plan.executor";
-import { createBuiltinHandlers } from "../../src/core/plan/plan.handlers";
+import { coreStepExecutors } from "../../src/core/plan/plan.handlers";
+import { createStepExecutorRegistry } from "../../src/core/plan/step.registry";
 import type {
   ExecutionPlan,
   GraphState,
@@ -10,7 +11,7 @@ import type {
   PlanExecutorDeps,
   PolicyRef,
 } from "../../src/core/plan/plan.types";
-import type { StepHandlerRegistry } from "../../src/core/plan/step.registry";
+import type { StepExecutor } from "../../src/core/plan/step.registry";
 
 class SpyMemoryRepo {
   readonly writes: MemoryWriteRecord[] = [];
@@ -20,10 +21,10 @@ class SpyMemoryRepo {
   }
 }
 
-function makePlan(stepTypes: readonly string[]): ExecutionPlan {
+function makePlan(stepKinds: readonly string[]): ExecutionPlan {
   return {
     version: "1.0",
-    steps: stepTypes.map((type) => ({ type, params: {} })),
+    steps: stepKinds.map((kind) => ({ kind, params: {} })),
   };
 }
 
@@ -41,6 +42,11 @@ function makeState(
     selectedContext: undefined,
     assembledPrompt: undefined,
     actOutput: undefined,
+    stepResults: undefined,
+    stepUnavailableReasons: undefined,
+    repoScanVersion: undefined,
+    repoContextArtifactPath: undefined,
+    repoContextUnavailableReason: undefined,
     lastResponse: undefined,
     stepLog: [],
   };
@@ -57,20 +63,14 @@ function makeDeps(memoryRepo: SpyMemoryRepo): PlanExecutorDeps {
   };
 }
 
-function withRecorder(
-  handlers: StepHandlerRegistry,
-  calls: string[]
-): StepHandlerRegistry {
-  const wrapped: Record<string, StepHandlerRegistry[string]> = {};
-
-  for (const [type, handler] of Object.entries(handlers)) {
-    wrapped[type] = async (state, step, deps) => {
-      calls.push(step.type);
-      return handler(state, step, deps);
-    };
+function createRegistryWithExecutors(
+  executors: Readonly<Record<string, StepExecutor>>
+) {
+  const registry = createStepExecutorRegistry();
+  for (const [kind, executor] of Object.entries(executors)) {
+    registry.register(kind, executor);
   }
-
-  return wrapped;
+  return registry;
 }
 
 test("T1: core does not branch on currentMode", async () => {
@@ -88,21 +88,40 @@ test("T1: core does not branch on currentMode", async () => {
 
   const callsA: string[] = [];
   const callsB: string[] = [];
+
+  const wrappedExecutorsA: Record<string, StepExecutor> = {};
+  for (const [kind, executor] of Object.entries(coreStepExecutors)) {
+    wrappedExecutorsA[kind] = async (state, step, deps) => {
+      callsA.push(kind);
+      return executor(state, step, deps);
+    };
+  }
+
+  const wrappedExecutorsB: Record<string, StepExecutor> = {};
+  for (const [kind, executor] of Object.entries(coreStepExecutors)) {
+    wrappedExecutorsB[kind] = async (state, step, deps) => {
+      callsB.push(kind);
+      return executor(state, step, deps);
+    };
+  }
+
   const depsA = makeDeps(new SpyMemoryRepo());
   const depsB = makeDeps(new SpyMemoryRepo());
 
   const resultA = await executePlan(
+    plan,
     makeState(plan, policyRef, "A"),
     depsA,
-    withRecorder(createBuiltinHandlers(), callsA)
+    createRegistryWithExecutors(wrappedExecutorsA)
   );
   const resultB = await executePlan(
+    plan,
     makeState(plan, policyRef, "B"),
     depsB,
-    withRecorder(createBuiltinHandlers(), callsB)
+    createRegistryWithExecutors(wrappedExecutorsB)
   );
 
-  assert.deepEqual(callsA, plan.steps.map((step) => step.type));
+  assert.deepEqual(callsA, plan.steps.map((step) => String(step.kind)));
   assert.deepEqual(callsA, callsB);
   assert.equal(resultA.lastResponse, resultB.lastResponse);
 });
@@ -117,36 +136,37 @@ test("T2: only steps in executionPlan are executed", async () => {
     MemoryWrite: 0,
   };
 
-  const handlers: StepHandlerRegistry = {
+  const executors: Record<string, StepExecutor> = {
     LoadDocsForMode: async () => {
       counts.LoadDocsForMode += 1;
-      return {};
+      return { kind: "ok" };
     },
     ContextSelect: async () => {
       counts.ContextSelect += 1;
-      return {};
+      return { kind: "ok" };
     },
     PromptAssemble: async () => {
       counts.PromptAssemble += 1;
-      return {};
+      return { kind: "ok" };
     },
     LLMCall: async () => {
       counts.LLMCall += 1;
-      return { lastResponse: "ok" };
+      return { kind: "ok", patch: { lastResponse: "ok" }, data: "ok" };
     },
     MemoryWrite: async () => {
       counts.MemoryWrite += 1;
-      return {};
+      return { kind: "ok" };
     },
   };
 
   const result = await executePlan(
+    plan,
     {
       ...makeState(plan, Object.freeze({ policyId: "policy-alpha" })),
       assembledPrompt: "already-assembled",
     },
     makeDeps(new SpyMemoryRepo()),
-    handlers
+    createRegistryWithExecutors(executors)
   );
 
   assert.equal(result.lastResponse, "ok");
@@ -169,12 +189,12 @@ test("T4: policyRef remains immutable through execution", async () => {
     policyId: "policy-alpha",
     docBundleRefs: Object.freeze(["bundle.md"]),
   });
-  const deps = makeDeps(new SpyMemoryRepo());
 
   const result = await executePlan(
+    plan,
     makeState(plan, policyRef),
-    deps,
-    createBuiltinHandlers()
+    makeDeps(new SpyMemoryRepo()),
+    createRegistryWithExecutors(coreStepExecutors)
   );
 
   assert.equal(Object.isFrozen(policyRef), true);
@@ -188,9 +208,10 @@ test("guard: empty executionPlan fails fast", async () => {
   await assert.rejects(
     async () => {
       await executePlan(
+        emptyPlan,
         makeState(emptyPlan, Object.freeze({ policyId: "policy-alpha" })),
         makeDeps(new SpyMemoryRepo()),
-        createBuiltinHandlers()
+        createRegistryWithExecutors(coreStepExecutors)
       );
     },
     /executionPlan\.steps must not be empty/i

@@ -3,3 +3,6 @@ bundles:
   - mode_id: "default"
     files:
       - "docs/prd/PRD-001_core_runtime_skeleton.md"
+  - mode_id: "implement"
+    files:
+      - "docs/prd/PRD-003_repository_context_plugin.md"

@@ -27,18 +27,46 @@ function assertObject(value: unknown, absPath: string, where: string): Record<st
   return value as Record<string, unknown>;
 }
 
-function assertExecutionStep(value: unknown, absPath: string, where: string): ExecutionStep {
-  const row = assertObject(value, absPath, where);
-  if (typeof row.type !== "string" || row.type.trim() === "") {
-    fail(absPath, `${where}.type must be a non-empty string`);
+function toParamsObject(
+  paramsRaw: unknown,
+  absPath: string,
+  where: string
+): Record<string, unknown> {
+  if (typeof paramsRaw === "undefined") {
+    return {};
   }
-  if (typeof row.params !== "object" || row.params === null || Array.isArray(row.params)) {
+  if (typeof paramsRaw !== "object" || paramsRaw === null || Array.isArray(paramsRaw)) {
     fail(absPath, `${where}.params must be an object`);
   }
-  return {
-    type: row.type,
-    params: row.params as Record<string, unknown>,
-  };
+  return paramsRaw as Record<string, unknown>;
+}
+
+function assertExecutionStep(value: unknown, absPath: string, where: string): ExecutionStep {
+  const row = assertObject(value, absPath, where);
+
+  if (typeof row.kind === "string" && row.kind.trim() !== "") {
+    const extras = Object.fromEntries(
+      Object.entries(row).filter(([key]) => key !== "kind" && key !== "type" && key !== "params")
+    );
+    const params = {
+      ...extras,
+      ...toParamsObject(row.params, absPath, where),
+    };
+
+    return {
+      kind: row.kind,
+      params,
+    };
+  }
+
+  if (typeof row.type === "string" && row.type.trim() !== "") {
+    return {
+      type: row.type,
+      params: toParamsObject(row.params, absPath, where),
+    };
+  }
+
+  fail(absPath, `${where} requires either non-empty kind or type`);
 }
 
 export function validateModesFile(value: unknown, absPath: string): ModesFile {

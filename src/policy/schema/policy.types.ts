@@ -1,7 +1,15 @@
-export interface ExecutionStep {
+export interface LegacyExecutionStep {
   type: string;
   params: Record<string, unknown>;
 }
+
+export interface KindExecutionStep {
+  kind: string;
+  params?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export type ExecutionStep = LegacyExecutionStep | KindExecutionStep;
 
 export interface ExecutionPlan {
   version: string;
