@@ -1,6 +1,15 @@
 {
-  "delta_id": null,
-  "one_liner": "",
-  "future_action": "",
-  "decisions": []
+  "_note": "DO NOT CHANGE delta_id. Fill human meaning only.",
+  "delta_id": "20260220_042539_5d448954",
+  "one_liner": "Policy Injection Layer MVP 도입 (Core-Policy 분리, profile 기반 executionPlan 주입)",
+  "context": [],
+  "decisions": [],
+  "not_decided": [],
+  "rationale": [],
+  "problems": [],
+  "risks": [],
+  "next_actions": [
+    "Bundle-first 문서 주입을 executionPlan과 완전 연결"
+  ],
+  "definition_of_done": []
 }

@@ -1,9 +1,11 @@
 {
-  "latest_delta_id": null,
-  "latest_prd_id": null,
-  "updated_at": null,
   "delta_id": "20260220_042539_5d448954",
   "generated_at": "2026-02-20T04:25:39.445Z",
+  "scope": {
+    "prd_done_add": [
+      "PRD-002"
+    ]
+  },
   "meta": {
     "update_reason": "close PRD-002",
     "git": {
@@ -22,10 +24,5 @@
   "build": {
     "typecheck": "PASS",
     "test": "PASS"
-  },
-  "scope": {
-    "prd_done_add": [
-      "PRD-002"
-    ]
   }
 }
