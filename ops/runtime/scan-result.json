@@ -1,0 +1,730 @@
+{
+  "schemaVersion": 1,
+  "createdAtMs": 1771572990074,
+  "scanVersionMs": 1771572990074,
+  "ignore": [
+    "node_modules/**",
+    ".git/**",
+    "ops/runtime/**",
+    "dist/**",
+    "build/**",
+    "out/**",
+    "coverage/**",
+    ".next/**",
+    ".turbo/**"
+  ],
+  "fileCount": 142,
+  "totalBytes": 857341,
+  "fileIndex": [
+    {
+      "path": "_archive/agent_langchain_impl/agent_rest/config.ts",
+      "size": 156,
+      "mtimeMs": 1771560361716.6477
+    },
+    {
+      "path": "_archive/agent_langchain_impl/agent_rest/graph/graph.ts",
+      "size": 55343,
+      "mtimeMs": 1771560361716.6477
+    },
+    {
+      "path": "_archive/agent_langchain_impl/agent_rest/memory/memory.db",
+      "size": 475136,
+      "mtimeMs": 1771491251615.4507
+    },
+    {
+      "path": "_archive/agent_langchain_impl/agent_rest/memory/memory.repository.ts",
+      "size": 387,
+      "mtimeMs": 1771560361716.6477
+    },
+    {
+      "path": "_archive/agent_langchain_impl/agent_rest/memory/memory.types.ts",
+      "size": 505,
+      "mtimeMs": 1771560361716.6477
+    },
+    {
+      "path": "_archive/agent_langchain_impl/agent_rest/memory/sqlite.repository.ts",
+      "size": 5448,
+      "mtimeMs": 1771560361716.6477
+    },
+    {
+      "path": "_archive/agent_langchain_impl/agent_rest/policy/decision-lock.ts",
+      "size": 394,
+      "mtimeMs": 1771560361716.6477
+    },
+    {
+      "path": "_archive/agent_langchain_impl/agent_rest/run-graph.ts",
+      "size": 710,
+      "mtimeMs": 1771560361716.6477
+    },
+    {
+      "path": "_archive/tests_langchain_impl/agent/graph/graph.llm_error_no_persist.test.ts",
+      "size": 3894,
+      "mtimeMs": 1771560361716.6477
+    },
+    {
+      "path": "_archive/tests_langchain_impl/agent/graph/graph.status_no_persist.test.ts",
+      "size": 13712,
+      "mtimeMs": 1771560361716.6477
+    },
+    {
+      "path": "_archive/tests_langchain_impl/agent/llm/local.adapter.test.ts",
+      "size": 1414,
+      "mtimeMs": 1771560361720.6477
+    },
+    {
+      "path": "_review/PRD-001_003.cycle.review.md",
+      "size": 405,
+      "mtimeMs": 1771467349319.4485
+    },
+    {
+      "path": ".dependency-cruiser.json",
+      "size": 1151,
+      "mtimeMs": 1771467349315.4485
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "size": 2154,
+      "mtimeMs": 1771467349315.4485
+    },
+    {
+      "path": ".github/workflows/gate.yml",
+      "size": 1715,
+      "mtimeMs": 1771467349315.4485
+    },
+    {
+      "path": ".gitignore",
+      "size": 398,
+      "mtimeMs": 1771560361716.6477
+    },
+    {
+      "path": ".nvmrc",
+      "size": 9,
+      "mtimeMs": 1771467349319.4485
+    },
+    {
+      "path": "docs/constitution/coding.constitution.md",
+      "size": 4620,
+      "mtimeMs": 1771467349319.4485
+    },
+    {
+      "path": "docs/constitution/scaffold.generator.md",
+      "size": 4394,
+      "mtimeMs": 1771467349319.4485
+    },
+    {
+      "path": "docs/contract/intent_maps/C-001_core_runtime_skeleton.intent_map.md",
+      "size": 2686,
+      "mtimeMs": 1771564125444.648
+    },
+    {
+      "path": "docs/contract/intent_maps/C-002_policy_injection_layer.intent_map.md",
+      "size": 2195,
+      "mtimeMs": 1771560361720.6477
+    },
+    {
+      "path": "docs/contract/intent_maps/C-003_repository_context_plugin.intent_map.md",
+      "size": 2009,
+      "mtimeMs": 1771562639228.647
+    },
+    {
+      "path": "docs/contract/specs/B-001_core_runtime_skeleton.contract.md",
+      "size": 3342,
+      "mtimeMs": 1771564125444.648
+    },
+    {
+      "path": "docs/contract/specs/B-002_policy_injection_layer.contract.md",
+      "size": 2959,
+      "mtimeMs": 1771560361720.6477
+    },
+    {
+      "path": "docs/contract/specs/B-003_repository_context_plugin.contract.md",
+      "size": 2120,
+      "mtimeMs": 1771562639176.647
+    },
+    {
+      "path": "docs/MEMORY_Project/PROJECT_STATE.md",
+      "size": 2226,
+      "mtimeMs": 1771571463484.638
+    },
+    {
+      "path": "docs/MEMORY_Project/PROJECT_STATUS.md",
+      "size": 242,
+      "mtimeMs": 1771467349319.4485
+    },
+    {
+      "path": "docs/MEMORY_Project/state_history/PROJECT_STATE_20260220_132549.md",
+      "size": 2171,
+      "mtimeMs": 1771561549848.6462
+    },
+    {
+      "path": "docs/MEMORY_Project/state_history/PROJECT_STATE_20260220_140744.md",
+      "size": 2204,
+      "mtimeMs": 1771564064456.6487
+    },
+    {
+      "path": "docs/MEMORY_Project/state_history/PROJECT_STATE_20260220_151903.md",
+      "size": 2212,
+      "mtimeMs": 1771568343888.6487
+    },
+    {
+      "path": "docs/MEMORY_Project/state_history/PROJECT_STATE_20260220_161020.md",
+      "size": 2225,
+      "mtimeMs": 1771571420064.6394
+    },
+    {
+      "path": "docs/MEMORY_Project/status/PROJECT_STATUS_20260220_132549.md",
+      "size": 817,
+      "mtimeMs": 1771561549848.6462
+    },
+    {
+      "path": "docs/MEMORY_Project/status/PROJECT_STATUS_20260220_140744.md",
+      "size": 817,
+      "mtimeMs": 1771564064456.6487
+    },
+    {
+      "path": "docs/MEMORY_Project/status/PROJECT_STATUS_20260220_151903.md",
+      "size": 817,
+      "mtimeMs": 1771568343888.6487
+    },
+    {
+      "path": "docs/MEMORY_Project/status/PROJECT_STATUS_20260220_161020.md",
+      "size": 817,
+      "mtimeMs": 1771571420064.6394
+    },
+    {
+      "path": "docs/platform/D-001_core_runtime_skeleton.platform.md",
+      "size": 2286,
+      "mtimeMs": 1771564125444.648
+    },
+    {
+      "path": "docs/platform/D-002_policy_injection_layer.platform.md",
+      "size": 2677,
+      "mtimeMs": 1771560361720.6477
+    },
+    {
+      "path": "docs/platform/D-003_repository_context_plugin.platform.md",
+      "size": 1850,
+      "mtimeMs": 1771562639284.647
+    },
+    {
+      "path": "docs/prd/PRD-001_core_runtime_skeleton.md",
+      "size": 3980,
+      "mtimeMs": 1771564125444.648
+    },
+    {
+      "path": "docs/prd/PRD-002_policy_injection_layer.md",
+      "size": 4630,
+      "mtimeMs": 1771560361720.6477
+    },
+    {
+      "path": "docs/prd/PRD-003_repository_context_plugin.md",
+      "size": 2840,
+      "mtimeMs": 1771551040596.6357
+    },
+    {
+      "path": "ops/evidence/PRD-001/2026-02-20T05:07:31.789Z/changed_files.txt",
+      "size": 577,
+      "mtimeMs": 1771564053528.6487
+    },
+    {
+      "path": "ops/evidence/PRD-001/2026-02-20T05:07:31.789Z/exit_codes.json",
+      "size": 54,
+      "mtimeMs": 1771564053528.6487
+    },
+    {
+      "path": "ops/evidence/PRD-001/2026-02-20T05:07:31.789Z/git_info.json",
+      "size": 187,
+      "mtimeMs": 1771564053528.6487
+    },
+    {
+      "path": "ops/evidence/PRD-001/2026-02-20T05:07:31.789Z/test.stderr.log",
+      "size": 0,
+      "mtimeMs": 1771564053528.6487
+    },
+    {
+      "path": "ops/evidence/PRD-001/2026-02-20T05:07:31.789Z/test.stdout.log",
+      "size": 3311,
+      "mtimeMs": 1771564053528.6487
+    },
+    {
+      "path": "ops/evidence/PRD-001/2026-02-20T05:07:31.789Z/typecheck.stderr.log",
+      "size": 0,
+      "mtimeMs": 1771564053528.6487
+    },
+    {
+      "path": "ops/evidence/PRD-001/2026-02-20T05:07:31.789Z/typecheck.stdout.log",
+      "size": 0,
+      "mtimeMs": 1771564053528.6487
+    },
+    {
+      "path": "ops/evidence/PRD-002/2026-02-20T04:25:35.125Z/changed_files.txt",
+      "size": 631,
+      "mtimeMs": 1771561537308.6458
+    },
+    {
+      "path": "ops/evidence/PRD-002/2026-02-20T04:25:35.125Z/exit_codes.json",
+      "size": 54,
+      "mtimeMs": 1771561537308.6458
+    },
+    {
+      "path": "ops/evidence/PRD-002/2026-02-20T04:25:35.125Z/git_info.json",
+      "size": 188,
+      "mtimeMs": 1771561537308.6458
+    },
+    {
+      "path": "ops/evidence/PRD-002/2026-02-20T04:25:35.125Z/test.stderr.log",
+      "size": 0,
+      "mtimeMs": 1771561537308.6458
+    },
+    {
+      "path": "ops/evidence/PRD-002/2026-02-20T04:25:35.125Z/test.stdout.log",
+      "size": 2576,
+      "mtimeMs": 1771561537308.6458
+    },
+    {
+      "path": "ops/evidence/PRD-002/2026-02-20T04:25:35.125Z/typecheck.stderr.log",
+      "size": 0,
+      "mtimeMs": 1771561537308.6458
+    },
+    {
+      "path": "ops/evidence/PRD-002/2026-02-20T04:25:35.125Z/typecheck.stdout.log",
+      "size": 0,
+      "mtimeMs": 1771561537308.6458
+    },
+    {
+      "path": "ops/evidence/PRD-003/2026-02-20T06:18:52.530Z/changed_files.txt",
+      "size": 753,
+      "mtimeMs": 1771568334660.6482
+    },
+    {
+      "path": "ops/evidence/PRD-003/2026-02-20T06:18:52.530Z/exit_codes.json",
+      "size": 54,
+      "mtimeMs": 1771568334660.6482
+    },
+    {
+      "path": "ops/evidence/PRD-003/2026-02-20T06:18:52.530Z/git_info.json",
+      "size": 191,
+      "mtimeMs": 1771568334660.6482
+    },
+    {
+      "path": "ops/evidence/PRD-003/2026-02-20T06:18:52.530Z/test.stderr.log",
+      "size": 0,
+      "mtimeMs": 1771568334660.6482
+    },
+    {
+      "path": "ops/evidence/PRD-003/2026-02-20T06:18:52.530Z/test.stdout.log",
+      "size": 3854,
+      "mtimeMs": 1771568334660.6482
+    },
+    {
+      "path": "ops/evidence/PRD-003/2026-02-20T06:18:52.530Z/typecheck.stderr.log",
+      "size": 0,
+      "mtimeMs": 1771568334660.6482
+    },
+    {
+      "path": "ops/evidence/PRD-003/2026-02-20T06:18:52.530Z/typecheck.stdout.log",
+      "size": 0,
+      "mtimeMs": 1771568334660.6482
+    },
+    {
+      "path": "ops/evidence/PRD-003/2026-02-20T07:10:01.147Z/changed_files.txt",
+      "size": 335,
+      "mtimeMs": 1771571403284.619
+    },
+    {
+      "path": "ops/evidence/PRD-003/2026-02-20T07:10:01.147Z/exit_codes.json",
+      "size": 54,
+      "mtimeMs": 1771571403284.619
+    },
+    {
+      "path": "ops/evidence/PRD-003/2026-02-20T07:10:01.147Z/git_info.json",
+      "size": 192,
+      "mtimeMs": 1771571403284.619
+    },
+    {
+      "path": "ops/evidence/PRD-003/2026-02-20T07:10:01.147Z/test.stderr.log",
+      "size": 0,
+      "mtimeMs": 1771571403284.619
+    },
+    {
+      "path": "ops/evidence/PRD-003/2026-02-20T07:10:01.147Z/test.stdout.log",
+      "size": 5531,
+      "mtimeMs": 1771571403284.619
+    },
+    {
+      "path": "ops/evidence/PRD-003/2026-02-20T07:10:01.147Z/typecheck.stderr.log",
+      "size": 0,
+      "mtimeMs": 1771571403284.619
+    },
+    {
+      "path": "ops/evidence/PRD-003/2026-02-20T07:10:01.147Z/typecheck.stdout.log",
+      "size": 0,
+      "mtimeMs": 1771571403284.619
+    },
+    {
+      "path": "ops/state_candidates/PROJECT_STATE.next.md",
+      "size": 2226,
+      "mtimeMs": 1771571405588.6218
+    },
+    {
+      "path": "ops/state_candidates/PROJECT_STATUS.next.md",
+      "size": 817,
+      "mtimeMs": 1771571405588.6218
+    },
+    {
+      "path": "ops/state_delta/history/20260220_042539_5d448954.json",
+      "size": 708,
+      "mtimeMs": 1771561539440.646
+    },
+    {
+      "path": "ops/state_delta/history/20260220_050735_ec406c53.json",
+      "size": 707,
+      "mtimeMs": 1771564125444.648
+    },
+    {
+      "path": "ops/state_delta/history/20260220_061856_e3015bcc.json",
+      "size": 711,
+      "mtimeMs": 1771568375960.6492
+    },
+    {
+      "path": "ops/state_delta/history/20260220_071005_094f4824.json",
+      "size": 712,
+      "mtimeMs": 1771571463484.638
+    },
+    {
+      "path": "ops/state_delta/latest.json",
+      "size": 820,
+      "mtimeMs": 1771571463484.638
+    },
+    {
+      "path": "ops/state_delta/meaning.json",
+      "size": 343,
+      "mtimeMs": 1771571463484.638
+    },
+    {
+      "path": "package-lock.json",
+      "size": 65630,
+      "mtimeMs": 1771472880819.4497
+    },
+    {
+      "path": "package.json",
+      "size": 1389,
+      "mtimeMs": 1771560361720.6477
+    },
+    {
+      "path": "policy/profiles/coding/bundles.yaml",
+      "size": 202,
+      "mtimeMs": 1771568375960.6492
+    },
+    {
+      "path": "policy/profiles/coding/modes.yaml",
+      "size": 638,
+      "mtimeMs": 1771568375960.6492
+    },
+    {
+      "path": "policy/profiles/coding/triggers.yaml",
+      "size": 98,
+      "mtimeMs": 1771568375964.6492
+    },
+    {
+      "path": "policy/profiles/default/bundles.yaml",
+      "size": 294,
+      "mtimeMs": 1771568375964.6492
+    },
+    {
+      "path": "policy/profiles/default/modes.yaml",
+      "size": 897,
+      "mtimeMs": 1771568375964.6492
+    },
+    {
+      "path": "policy/profiles/default/triggers.yaml",
+      "size": 314,
+      "mtimeMs": 1771568375964.6492
+    },
+    {
+      "path": "README.md",
+      "size": 5525,
+      "mtimeMs": 1771561554196.6462
+    },
+    {
+      "path": "runtime/cli/run_local.args.ts",
+      "size": 1725,
+      "mtimeMs": 1771564125444.648
+    },
+    {
+      "path": "runtime/cli/run_local.ts",
+      "size": 2235,
+      "mtimeMs": 1771572891768.6375
+    },
+    {
+      "path": "runtime/graph/graph.ts",
+      "size": 3933,
+      "mtimeMs": 1771568375964.6492
+    },
+    {
+      "path": "runtime/graph/step_executor_registry.ts",
+      "size": 1091,
+      "mtimeMs": 1771568375964.6492
+    },
+    {
+      "path": "runtime/llm/llm.types.ts",
+      "size": 76,
+      "mtimeMs": 1771560361724.6477
+    },
+    {
+      "path": "runtime/llm/local.adapter.ts",
+      "size": 1587,
+      "mtimeMs": 1771560361724.6477
+    },
+    {
+      "path": "runtime/llm/openai.adapter.ts",
+      "size": 203,
+      "mtimeMs": 1771560361724.6477
+    },
+    {
+      "path": "runtime/llm/router.client.ts",
+      "size": 1036,
+      "mtimeMs": 1771560361724.6477
+    },
+    {
+      "path": "runtime/memory/in_memory.repository.ts",
+      "size": 341,
+      "mtimeMs": 1771564125448.648
+    },
+    {
+      "path": "runtime/memory/memory.types.ts",
+      "size": 199,
+      "mtimeMs": 1771564125448.648
+    },
+    {
+      "path": "scripts/ci/check-error-code-literals.mjs",
+      "size": 1816,
+      "mtimeMs": 1771467349319.4485
+    },
+    {
+      "path": "scripts/ci/check-intent.mjs",
+      "size": 1304,
+      "mtimeMs": 1771467349319.4485
+    },
+    {
+      "path": "scripts/ci/check-static-rules.mjs",
+      "size": 1703,
+      "mtimeMs": 1771467349319.4485
+    },
+    {
+      "path": "scripts/ci/check-test-intent-and-bans.mjs",
+      "size": 2618,
+      "mtimeMs": 1771467349319.4485
+    },
+    {
+      "path": "scripts/ci/check-tests-unchanged.mjs",
+      "size": 828,
+      "mtimeMs": 1771467349319.4485
+    },
+    {
+      "path": "scripts/ci/hold-on-test-changes.mjs",
+      "size": 961,
+      "mtimeMs": 1771467349319.4485
+    },
+    {
+      "path": "scripts/delta_update_latest.mjs",
+      "size": 6373,
+      "mtimeMs": 1771467349319.4485
+    },
+    {
+      "path": "scripts/guard-path.sh",
+      "size": 346,
+      "mtimeMs": 1771467349319.4485
+    },
+    {
+      "path": "scripts/prd_close.mjs",
+      "size": 1212,
+      "mtimeMs": 1771467349319.4485
+    },
+    {
+      "path": "scripts/prd_collect_evidence.mjs",
+      "size": 3054,
+      "mtimeMs": 1771467349319.4485
+    },
+    {
+      "path": "scripts/state_make_candidate.mjs",
+      "size": 10506,
+      "mtimeMs": 1771467349319.4485
+    },
+    {
+      "path": "scripts/state_meaning_prompt.mjs",
+      "size": 2001,
+      "mtimeMs": 1771467349319.4485
+    },
+    {
+      "path": "scripts/state_promote_candidate.mjs",
+      "size": 2688,
+      "mtimeMs": 1771467349319.4485
+    },
+    {
+      "path": "scripts/state_validate_candidate.mjs",
+      "size": 3896,
+      "mtimeMs": 1771467349319.4485
+    },
+    {
+      "path": "scripts/state_verify_promoted.mjs",
+      "size": 875,
+      "mtimeMs": 1771467349319.4485
+    },
+    {
+      "path": "src/adapter/_shared/error_policy_registry.ts",
+      "size": 1096,
+      "mtimeMs": 1771467349319.4485
+    },
+    {
+      "path": "src/adapter/_shared/response_policy.ts",
+      "size": 1573,
+      "mtimeMs": 1771467349323.4485
+    },
+    {
+      "path": "src/core/_shared/utils/deep_freeze.ts",
+      "size": 396,
+      "mtimeMs": 1771467349323.4485
+    },
+    {
+      "path": "src/core/_shared/utils/snapshot.ts",
+      "size": 162,
+      "mtimeMs": 1771467349323.4485
+    },
+    {
+      "path": "src/core/errors/canonical_error_codes.ts",
+      "size": 533,
+      "mtimeMs": 1771467349323.4485
+    },
+    {
+      "path": "src/core/plan/plan.executor.ts",
+      "size": 2485,
+      "mtimeMs": 1771568375964.6492
+    },
+    {
+      "path": "src/core/plan/plan.handlers.ts",
+      "size": 3612,
+      "mtimeMs": 1771568375964.6492
+    },
+    {
+      "path": "src/core/plan/plan.types.ts",
+      "size": 2397,
+      "mtimeMs": 1771568375964.6492
+    },
+    {
+      "path": "src/core/plan/step.registry.ts",
+      "size": 2065,
+      "mtimeMs": 1771568375964.6492
+    },
+    {
+      "path": "src/plugin/repository/index.ts",
+      "size": 828,
+      "mtimeMs": 1771571463484.638
+    },
+    {
+      "path": "src/plugin/repository/repo_context.executor.ts",
+      "size": 4199,
+      "mtimeMs": 1771571463484.638
+    },
+    {
+      "path": "src/plugin/repository/scanner.ts",
+      "size": 4584,
+      "mtimeMs": 1771571463484.638
+    },
+    {
+      "path": "src/plugin/repository/snapshot_manager.ts",
+      "size": 2084,
+      "mtimeMs": 1771571463484.638
+    },
+    {
+      "path": "src/policy/interpreter/policy.interpreter.ts",
+      "size": 4470,
+      "mtimeMs": 1771572625160.6255
+    },
+    {
+      "path": "src/policy/interpreter/policy.validator.ts",
+      "size": 4924,
+      "mtimeMs": 1771568375968.6492
+    },
+    {
+      "path": "src/policy/interpreter/yaml.loader.ts",
+      "size": 6917,
+      "mtimeMs": 1771561554196.6462
+    },
+    {
+      "path": "src/policy/schema/policy.types.ts",
+      "size": 977,
+      "mtimeMs": 1771568375968.6492
+    },
+    {
+      "path": "tests/agent/core_neutrality_literals.test.ts",
+      "size": 1241,
+      "mtimeMs": 1771564125448.648
+    },
+    {
+      "path": "tests/agent/core_plan_executor.test.ts",
+      "size": 5950,
+      "mtimeMs": 1771568375968.6492
+    },
+    {
+      "path": "tests/agent/repo_context_plugin_absent.test.ts",
+      "size": 2719,
+      "mtimeMs": 1771568375968.6492
+    },
+    {
+      "path": "tests/agent/repo_context_plugin_rescan.test.ts",
+      "size": 5417,
+      "mtimeMs": 1771571463488.638
+    },
+    {
+      "path": "tests/agent/repo_context_plugin_reuse.test.ts",
+      "size": 4647,
+      "mtimeMs": 1771571463488.638
+    },
+    {
+      "path": "tests/plugin/repository_scanner.test.ts",
+      "size": 3839,
+      "mtimeMs": 1771571463488.638
+    },
+    {
+      "path": "tests/plugin/repository_snapshot_manager.test.ts",
+      "size": 3524,
+      "mtimeMs": 1771571463488.638
+    },
+    {
+      "path": "tests/policy/adapter_import_rules.test.ts",
+      "size": 3291,
+      "mtimeMs": 1771467349323.4485
+    },
+    {
+      "path": "tests/policy/adapter_response_policy.test.ts",
+      "size": 1580,
+      "mtimeMs": 1771467349323.4485
+    },
+    {
+      "path": "tests/policy/core_must_not_import_adapter.test.ts",
+      "size": 2228,
+      "mtimeMs": 1771467349323.4485
+    },
+    {
+      "path": "tests/policy/error_policy_registry.test.ts",
+      "size": 511,
+      "mtimeMs": 1771467349323.4485
+    },
+    {
+      "path": "tests/policy/policy_interpreter.test.ts",
+      "size": 5135,
+      "mtimeMs": 1771568375968.6492
+    },
+    {
+      "path": "tests/policy/run_local_args.test.ts",
+      "size": 404,
+      "mtimeMs": 1771561554200.6462
+    },
+    {
+      "path": "tsconfig.json",
+      "size": 306,
+      "mtimeMs": 1771467349323.4485
+    }
+  ]
+}

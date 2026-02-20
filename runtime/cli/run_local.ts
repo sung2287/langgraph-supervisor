@@ -30,7 +30,10 @@ try {
     repoRoot: process.cwd(),
     profile,
   });
-  const resolvedPlan = interpreter.resolveExecutionPlan({ userInput: input });
+  const resolvedPlan = interpreter.resolveExecutionPlan({
+    userInput: input,
+    requestedPhase: phase,
+  });
   const modeLabel = resolvedPlan.metadata.modeLabel;
   const bundles = modeLabel ? interpreter.getBundlesForMode(modeLabel) : [];
   const docBundleRefs = bundles.flatMap((bundle) => bundle.files);

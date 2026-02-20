@@ -82,11 +82,24 @@ export class PolicyInterpreter {
     );
   }
 
-  resolveExecutionPlan(input: { userInput: string }): ExecutionPlan {
-    const targetModeId = this.resolveTargetMode(input.userInput);
-    const mode = this.findMode(targetModeId);
+  resolveExecutionPlan(input: { userInput: string; requestedPhase?: string }): ExecutionPlan {
+    const requestedPhase = input.requestedPhase?.trim();
+    const mode = requestedPhase
+      ? this.modesFile.modes.find(
+          (m) => m.id.toLowerCase() === requestedPhase.toLowerCase()
+        )
+      : this.findMode(this.resolveTargetMode(input.userInput));
+
+    if (!mode && requestedPhase) {
+      throw new Error(
+        `Unknown phase "${requestedPhase}". Available modes: ${this.modesFile.modes
+          .map((m) => m.id)
+          .join(", ")}`
+      );
+    }
+
     if (!mode) {
-      fail(this.modesPath, `target mode '${targetModeId}' is not defined`);
+      fail(this.modesPath, `target mode '${this.resolveTargetMode(input.userInput)}' is not defined`);
     }
 
     const plan: ExecutionPlan = {
