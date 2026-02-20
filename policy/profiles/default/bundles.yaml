@@ -1,0 +1,8 @@
+version: "1.0"
+bundles:
+  - mode_id: "default"
+    files:
+      - "docs/prd/PRD-002_policy_injection_layer.md"
+  - mode_id: "diagnose"
+    files:
+      - "docs/prd/PRD-003_repository_context_plugin.md"

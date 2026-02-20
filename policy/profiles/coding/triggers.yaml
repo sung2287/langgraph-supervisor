@@ -1,0 +1,5 @@
+version: "1.0"
+triggers:
+  - condition: "implement"
+    target_mode: "default"
+    type: "SOFT"

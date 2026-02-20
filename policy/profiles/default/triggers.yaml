@@ -1,0 +1,8 @@
+version: "1.0"
+triggers:
+  - condition: "re:^diag:"
+    target_mode: "diagnose"
+    type: "HARD"
+  - condition: "diagnose"
+    target_mode: "diagnose"
+    type: "SOFT"

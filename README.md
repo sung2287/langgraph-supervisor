@@ -52,6 +52,11 @@ The runtime executes a fixed, policy-driven pipeline focused on context assembly
    npm run run:local -- --repo . -- "Hello, let's discuss the project."
    ```
 
+   Use a policy profile (defaults to `default` when omitted):
+   ```bash
+   npm run run:local -- --repo . --profile coding -- "Refactor core logic"
+   ```
+
    Run a specific phase with debug logs:
    ```bash
    DEBUG_PROMPT=1 OLLAMA_TIMEOUT_MS=180000 npm run run:local -- --repo . --phase IMPLEMENT -- "Refactor the core logic in src/core"

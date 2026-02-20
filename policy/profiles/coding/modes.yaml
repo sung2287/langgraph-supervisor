@@ -1,0 +1,12 @@
+version: "1.0"
+modes:
+  - id: "default"
+    plan:
+      - type: "recall"
+        params: {}
+      - type: "assemble_prompt"
+        params: {}
+      - type: "llm_call"
+        params: {}
+      - type: "memory_write"
+        params: {}
