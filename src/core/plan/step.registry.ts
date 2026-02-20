@@ -4,25 +4,80 @@ export type StatePatch = Partial<
   Omit<GraphState, "userInput" | "executionPlan" | "policyRef">
 >;
 
-export type StepHandler = (
+export type StepExecutionResult =
+  | {
+      kind: "ok";
+      patch?: StatePatch;
+      data?: unknown;
+    }
+  | {
+      kind: "unavailable";
+      reason: string;
+      patch?: StatePatch;
+    }
+  | {
+      kind: "error";
+      error: {
+        message: string;
+        name?: string;
+      };
+      patch?: StatePatch;
+    };
+
+export type StepExecutor = (
   state: Readonly<GraphState>,
   step: Step,
   deps: PlanExecutorDeps
-) => Promise<StatePatch | void> | StatePatch | void;
+) => Promise<StepExecutionResult> | StepExecutionResult;
 
-export type StepHandlerRegistry = Readonly<Record<string, StepHandler>>;
+export interface StepExecutorRegistry {
+  register(kind: string, executor: StepExecutor): this;
+  execute(
+    kind: string,
+    step: Step,
+    state: Readonly<GraphState>,
+    deps: PlanExecutorDeps
+  ): Promise<StepExecutionResult>;
+}
 
-export async function dispatchStep(
-  state: Readonly<GraphState>,
-  step: Step,
-  deps: PlanExecutorDeps,
-  handlers: StepHandlerRegistry
-): Promise<StatePatch | void> {
-  const handler = handlers[step.type];
-  if (!handler) {
-    throw new Error(`PLAN_EXECUTION_ERROR unknown step type '${step.type}'`);
+class DefaultStepExecutorRegistry implements StepExecutorRegistry {
+  private readonly executors = new Map<string, StepExecutor>();
+
+  register(kind: string, executor: StepExecutor): this {
+    this.executors.set(kind, executor);
+    return this;
   }
-  return handler(state, step, deps);
+
+  async execute(
+    kind: string,
+    step: Step,
+    state: Readonly<GraphState>,
+    deps: PlanExecutorDeps
+  ): Promise<StepExecutionResult> {
+    const executor = this.executors.get(kind);
+    if (!executor) {
+      return {
+        kind: "unavailable",
+        reason: `STEP_EXECUTOR_UNAVAILABLE:${kind}`,
+      };
+    }
+
+    try {
+      return await executor(state, step, deps);
+    } catch (error) {
+      return {
+        kind: "error",
+        error:
+          error instanceof Error
+            ? { message: error.message, name: error.name }
+            : { message: String(error) },
+      };
+    }
+  }
+}
+
+export function createStepExecutorRegistry(): StepExecutorRegistry {
+  return new DefaultStepExecutorRegistry();
 }
 
 export function applyPatch(

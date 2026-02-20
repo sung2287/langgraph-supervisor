@@ -4,7 +4,15 @@ import type {
   PolicyRef,
   Step,
 } from "./plan.types";
-import type { StatePatch, StepHandler, StepHandlerRegistry } from "./step.registry";
+import type { StatePatch, StepExecutionResult, StepExecutor } from "./step.registry";
+
+function okResult(data?: unknown, patch?: StatePatch): StepExecutionResult {
+  return {
+    kind: "ok",
+    data,
+    patch,
+  };
+}
 
 function getDocBundleRefs(policyRef: PolicyRef): readonly string[] {
   const raw = (policyRef as { docBundleRefs?: unknown }).docBundleRefs;
@@ -29,81 +37,83 @@ function buildPrompt(state: GraphState): string {
   return sections.join("\n\n");
 }
 
-const loadDocsForMode: StepHandler = async (
+const loadDocsForMode: StepExecutor = async (
   state: Readonly<GraphState>,
   _step: Step,
   deps: PlanExecutorDeps
-): Promise<StatePatch> => {
+): Promise<StepExecutionResult> => {
   const loadedDocs = deps.loadDocsForMode
     ? await deps.loadDocsForMode(state.policyRef)
     : getDocBundleRefs(state.policyRef);
 
-  return {
+  return okResult(loadedDocs, {
     loadedDocs,
     actOutput: loadedDocs,
-  };
+  });
 };
 
-const contextSelect: StepHandler = async (
+const contextSelect: StepExecutor = async (
   state: Readonly<GraphState>,
   _step: Step,
   deps: PlanExecutorDeps
-): Promise<StatePatch> => {
+): Promise<StepExecutionResult> => {
   const loadedDocs = state.loadedDocs ?? [];
   const selectedContext = deps.selectContext
     ? await deps.selectContext({
         userInput: state.userInput,
         loadedDocs,
+        stepResults: state.stepResults,
         policyRef: state.policyRef,
       })
     : loadedDocs.join("\n");
 
-  return {
+  return okResult(selectedContext, {
     selectedContext,
     actOutput: selectedContext,
-  };
+  });
 };
 
-const promptAssemble: StepHandler = (
+const promptAssemble: StepExecutor = (
   state: Readonly<GraphState>,
   _step: Step,
   deps: PlanExecutorDeps
-): StatePatch => {
+): StepExecutionResult => {
   const loadedDocs = state.loadedDocs ?? [];
   const assembledPrompt = deps.assemblePrompt
     ? deps.assemblePrompt({
         userInput: state.userInput,
         selectedContext: state.selectedContext,
         loadedDocs,
+        stepResults: state.stepResults,
         policyRef: state.policyRef,
       })
     : buildPrompt(state);
 
-  return {
+  return okResult(assembledPrompt, {
     assembledPrompt,
     actOutput: assembledPrompt,
-  };
+  });
 };
 
-const llmCall: StepHandler = async (
+const llmCall: StepExecutor = async (
   state: Readonly<GraphState>,
   _step: Step,
   deps: PlanExecutorDeps
-): Promise<StatePatch> => {
+): Promise<StepExecutionResult> => {
   const prompt = state.assembledPrompt ?? state.userInput;
   const lastResponse = await deps.llmClient.generate(prompt);
 
-  return {
+  return okResult(lastResponse, {
     lastResponse,
     actOutput: lastResponse,
-  };
+  });
 };
 
-const memoryWrite: StepHandler = async (
+const memoryWrite: StepExecutor = async (
   state: Readonly<GraphState>,
   _step: Step,
   deps: PlanExecutorDeps
-): Promise<StatePatch> => {
+): Promise<StepExecutionResult> => {
   await deps.memoryRepo.write({
     userInput: state.userInput,
     assembledPrompt: state.assembledPrompt,
@@ -111,22 +121,20 @@ const memoryWrite: StepHandler = async (
     policyRef: state.policyRef,
   });
 
-  return {
+  return okResult(state.lastResponse, {
     actOutput: state.lastResponse,
-  };
+  });
 };
 
-export function createBuiltinHandlers(): StepHandlerRegistry {
-  return {
-    LoadDocsForMode: loadDocsForMode,
-    ContextSelect: contextSelect,
-    PromptAssemble: promptAssemble,
-    LLMCall: llmCall,
-    MemoryWrite: memoryWrite,
-    recall: contextSelect,
-    repo_scan: loadDocsForMode,
-    assemble_prompt: promptAssemble,
-    llm_call: llmCall,
-    memory_write: memoryWrite,
-  };
-}
+export const coreStepExecutors: Readonly<Record<string, StepExecutor>> = {
+  LoadDocsForMode: loadDocsForMode,
+  ContextSelect: contextSelect,
+  PromptAssemble: promptAssemble,
+  LLMCall: llmCall,
+  MemoryWrite: memoryWrite,
+  recall: contextSelect,
+  repo_scan: loadDocsForMode,
+  assemble_prompt: promptAssemble,
+  llm_call: llmCall,
+  memory_write: memoryWrite,
+};
