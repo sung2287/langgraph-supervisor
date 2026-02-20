@@ -39,7 +39,7 @@ ops/
 - **Policy Interpreter (src/policy/interpreter/)**: MUST NOT contain domain-specific logic. It MUST be a configuration interpreter independent of file format. The policy source format (YAML, JSON, etc.) MUST remain replaceable without requiring changes to the core engine.
 
 ## 4. CLI / Entry Integration Structure
-The CLI (`agent/cli/run_local.ts`) MUST initialize the `PolicyInterpreter` and load active policies before invoking the Core Engine.
+The CLI (`runtime/cli/run_local.ts`) MUST initialize the `PolicyInterpreter` and load active policies before invoking the Core Engine.
 
 - **Profile Selection:** The CLI or entry point MUST support selecting a policy profile using a `--profile <name>` flag.
 - **Default Profile:** If no profile is specified, the runtime MUST use the `default` profile.

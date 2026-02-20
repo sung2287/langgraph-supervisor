@@ -18,3 +18,6 @@ _recovery/
 
 # local evidence bundles (non-canonical)
 ops/evidence/
+
+# archived local sqlite artifacts
+_archive/**/memory.db
