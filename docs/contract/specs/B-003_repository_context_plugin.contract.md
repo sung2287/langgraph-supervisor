@@ -14,6 +14,9 @@
 - **Policy-Driven Trigger:** 플러그인은 Core에 의해 자동 실행되지 않으며, 오직 `executionPlan` 내의 명시적 단계 또는 사용자 정의 트리거(예: `#rescan`)에 의해서만 호출된다.
 - **Snapshot Reuse:** 유효한 스냅샷이 존재하고 정책상 갱신 조건이 충족되지 않은 경우, 물리적 재스캔 없이 기존 데이터를 재사용해야 한다.
 - **Opaque Results:** 플러그인이 반환하는 데이터는 Core가 해석하지 않고, `ContextSelect` 단계에서 LLM 프롬프트 조립을 위한 소스로만 활용된다.
+- **Core Independence:** The core engine must not detect or depend on the physical existence of the repository plugin.
+- **Zero Modification:** Disabling or removing the plugin must require zero modifications to the core execution loop.
+- **Optionality:** Repository scanning is optional and must never be implicitly mandatory.
 
 ## 4. Non-Goals
 - 실시간 파일 감시(File Watching) 및 동기화.

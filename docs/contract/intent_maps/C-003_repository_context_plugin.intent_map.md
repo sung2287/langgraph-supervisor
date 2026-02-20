@@ -1,4 +1,4 @@
-# C-003: Repository Context Plugin Intent Map
+# C-003_repository_context_plugin.intent_map.md
 
 ## 1. Why (의도)
 - **Efficiency:** 대규모 저장소에서 매번 발생하는 불필요한 스캔 비용을 줄이기 위해 캐싱된 스냅샷 구조를 도입한다.
@@ -13,7 +13,9 @@
 ## 3. Drift Detection Point
 - "The core engine executes an abstract execution plan and has no intrinsic knowledge of repository scanning."
 - "The repository snapshot must be stored within runtime-managed state directories and must not modify the target repository."
-- Core 소스 코드 내에서 `fs.readFileSync` 등으로 대상 저장소를 직접 탐색하는 로직이 발견되면 Intent Drift로 간주한다.
+- "Repository scanning is never mandatory."
+- "Core execution must not fail if the plugin is absent."
+- Core 소스 코드 내에서 plugin 존재를 가정한 로직이 발견되거나, `fs.readFileSync` 등으로 대상 저장소를 직접 탐색하는 로직이 발견되면 Intent Drift로 간주한다.
 
 ## 4. Future Expansion Path
 - **Vector Search Integration:** 단순 텍스트 인덱싱에서 RAG 기반 벡터 검색 플러그인으로의 확장.

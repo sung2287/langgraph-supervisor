@@ -1,9 +1,10 @@
-# D-003: Repository Context Plugin Platform
+# D-003_repository_context_plugin.platform.md
 
 ## 1. Execution Impact
 - **Runtime 영향:** `executionPlan`에 포함된 경우 실행 시간이 증가할 수 있으나, 스냅샷 재사용 시 영향은 미비하다.
 - **Session State:** 현재 세션에서 사용 중인 스냅샷의 버전 정보(`scanVersion`)가 컨텍스트에 포함된다.
-- **저장소 구조:** 대상 저장소는 변경되지 않으며, `ops/runtime/`에 `scan-result.json`이 생성된다.
+- **저장소 구조:** 대상 저장소는 변경되지 않으며, `ops/runtime/scan-result.json`이 생성된다.
+- **Core Decoupling:** Core Engine does not contain any static reference to the repository plugin. Plugin invocation is entirely driven by `executionPlan` resolution.
 
 ## 2. Required Files
 - **New Files:**
@@ -12,7 +13,7 @@
 - **Modified Files:**
   - `policy/profiles/*/modes.yaml`: 특정 모드(예: IMPLEMENT)의 `executionPlan`에 스캔 단계 추가.
 - **Location:**
-  - Artifacts: `ops/runtime/repo_snapshots/`
+  - Artifacts: `ops/runtime/scan-result.json`
 
 ## 3. Runtime Compliance Check
 - **RUNTIME.md:** "External Repo READ-ONLY" 원칙 준수 여부 확인.
@@ -20,6 +21,6 @@
 - **prd:close:** `prd:close` 시 해당 PRD와 관련된 임시 스냅샷 데이터를 정리할지 여부를 정책에 따라 결정한다.
 
 ## 4. Operational Notes
-- **Sandbox → Core 승격:** 플러그인이 안정화되면 `src/plugin/`에서 `src/core/_shared/plugins/` 등으로 위치를 조정할 수 있으나, 인터페이스는 불변이어야 한다.
-- **Environment PRD:** 이 플러그인은 런타임의 컨텍스트 공급 능력을 확장하는 환경 관련 기능에 해당한다.
+- **Sandbox → Core 승격:** 이 PRD는 기능 PRD이며, ExecutionPlan에 새로운 단계 유형을 추가하는 구조적 변경을 포함하므로 샌드박스 검증 후 Core로 승격되어야 한다.
+- **Operational Classification:** 기능 PRD.
 - **Audit:** 대규모 저장소 스캔 시 성능 병목이 발생할 수 있으므로, 주기적인 `summaryCache` 효율성 감사가 필요하다.
