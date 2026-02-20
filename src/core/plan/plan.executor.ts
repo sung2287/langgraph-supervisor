@@ -1,36 +1,37 @@
-import type { ExecutionPlan, PlanExecutionContext } from "./plan.types";
-import { StepRegistry } from "./step.registry";
+import { createBuiltinHandlers } from "./plan.handlers";
+import type { GraphState, PlanExecutorDeps } from "./plan.types";
+import { applyPatch, dispatchStep, type StepHandlerRegistry } from "./step.registry";
 
-export function createDefaultStepRegistry(): StepRegistry {
-  return new StepRegistry()
-    .register("recall", (ctx) => {
-      ctx.stepLog.push("recall");
-    })
-    .register("repo_scan", (ctx) => {
-      ctx.stepLog.push("repo_scan");
-    })
-    .register("assemble_prompt", (ctx, step) => {
-      const prefix = typeof step.params.prefix === "string" ? step.params.prefix : "";
-      ctx.assembledPrompt = `${prefix}${ctx.userInput}`;
-      ctx.stepLog.push("assemble_prompt");
-    })
-    .register("llm_call", async (ctx) => {
-      const prompt = ctx.assembledPrompt || ctx.userInput;
-      ctx.output = await ctx.llmGenerate(prompt);
-      ctx.stepLog.push("llm_call");
-    })
-    .register("memory_write", (ctx) => {
-      ctx.stepLog.push("memory_write");
-    });
+function assertRunnable(state: GraphState): void {
+  if (!state.policyRef || typeof state.policyRef !== "object") {
+    throw new Error("PLAN_EXECUTION_ERROR policyRef must be resolved before Core execution");
+  }
+
+  if (!Array.isArray(state.executionPlan.steps) || state.executionPlan.steps.length === 0) {
+    throw new Error("PLAN_EXECUTION_ERROR executionPlan.steps must not be empty");
+  }
 }
 
-export async function executeExecutionPlan(
-  plan: ExecutionPlan,
-  ctx: PlanExecutionContext,
-  registry: StepRegistry = createDefaultStepRegistry()
-): Promise<PlanExecutionContext> {
-  for (const step of plan.steps) {
-    await registry.executeStep(ctx, step);
+export async function executePlan(
+  state: GraphState,
+  deps: PlanExecutorDeps,
+  handlers: StepHandlerRegistry = createBuiltinHandlers()
+): Promise<GraphState> {
+  assertRunnable(state);
+
+  let nextState: GraphState = {
+    ...state,
+    stepLog: [...state.stepLog],
+  };
+
+  for (const step of state.executionPlan.steps) {
+    const patch = await dispatchStep(nextState, step, deps, handlers);
+    nextState = applyPatch(nextState, patch);
+    nextState = {
+      ...nextState,
+      stepLog: [...nextState.stepLog, step.type],
+    };
   }
-  return ctx;
+
+  return nextState;
 }
