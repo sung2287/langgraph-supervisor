@@ -1,15 +1,13 @@
 {
   "_note": "DO NOT CHANGE delta_id. Fill human meaning only.",
-  "delta_id": "20260221_134347_d7160c42",
-  "one_liner": "PRD-010 adds explicit session namespacing and fresh-session rotation to prevent hash-mismatch UX friction while keeping strict verification.",
+  "delta_id": "20260221_144947_73d544b9",
+  "one_liner": "PRD-006 완료 — Domain(currentDomain)은 CLI 초기 주입 + setDomain 전용 Step으로만 변경/영속되며 RetrieveDecisionContext는 read-only; Anchor 저장은 AnchorPort로 추상화되어 Handler가 무결성 검증 후 저장하고 Storage는 Passive 경계를 유지함.",
   "context": [],
   "decisions": [],
   "not_decided": [],
   "rationale": [],
   "problems": [],
   "risks": [],
-  "next_actions": [
-    "Run smoke:llm with --session and --fresh-session to validate real provider flows once keys are available."
-  ],
+  "next_actions": [],
   "definition_of_done": []
 }

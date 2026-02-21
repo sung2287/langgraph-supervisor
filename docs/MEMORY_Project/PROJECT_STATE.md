@@ -6,14 +6,14 @@
 - state_version: 2
 - last_updated: 2026-02-21
 - updated_by: human
-- update_reason: close PRD-010
-- latest_delta_id: 20260221_134347_d7160c42
+- update_reason: close prd-006
+- latest_delta_id: 20260221_144947_73d544b9
 - git_base: origin/main
-- git_merge_base: 257e84db03b329b19ae9e4fbbabc9e10ceaed21e
-- git_head: 52b5cc2ebfe2f83618094161df3b7ed83641f262
-- git_head_short: 52b5cc2
-- git_branch: prd-010-session-lifecycle-ux
-- changed_files_sha256: 1420864a852743440d85b7a2e34717853fa19031f46e5c5b5e3f74e0d0638705
+- git_merge_base: e6b39df81db88368104b520a65c2ab743db6b79f
+- git_head: 9513de759eeffe66ea9f52838c83b8936d9f38d7
+- git_head_short: 9513de7
+- git_branch: prd-006-domain-anchor-impl
+- changed_files_sha256: 193fdcac202876b4376bf200850d0f4fd556836d1cd2fe9ef7b9cf59088da767
 - typecheck_exit_code: 0
 - test_exit_code: 0
 
