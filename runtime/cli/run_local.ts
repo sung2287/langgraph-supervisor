@@ -1,6 +1,3 @@
-import { LocalLLMClient } from "../llm/local.adapter";
-import { OpenAIAdapter } from "../llm/openai.adapter";
-import { RouterLLMClient } from "../llm/router.client";
 import { PolicyInterpreter } from "../../src/policy/interpreter/policy.interpreter";
 import { computeExecutionPlanHash } from "../../src/session/execution_plan_hash";
 import { FileSessionStore } from "../../src/session/file_session.store";
@@ -15,22 +12,29 @@ import { createRuntimePlanExecutorDeps } from "../graph/plan_executor_deps";
 import { InMemoryRepository } from "../memory/in_memory.repository";
 import { CycleFailError, FailFastError } from "../../src/core/plan/errors";
 import { createSQLiteStorageLayer } from "../../src/adapter/storage/sqlite";
+import { resolveProviderConfig } from "../llm/provider.router";
+import { createLLMClientFromProviderConfig } from "../llm/provider.client";
+import { ConfigurationError } from "../llm/errors";
 
-const { input, repoPath, phase, profile } = parseRunLocalArgs(
+const { input, repoPath, phase, profile, provider, model, timeoutMs, maxAttempts } = parseRunLocalArgs(
   process.argv.slice(2)
 );
-const llm = new RouterLLMClient(
-  {
-    mode: "local",
-    promptLengthThreshold: 2000,
-  },
-  new LocalLLMClient(),
-  new OpenAIAdapter()
-);
-
-console.log(`mode=local repoPath=${repoPath} phase=${phase} profile=${profile}`);
 
 try {
+  const providerConfig = resolveProviderConfig(
+    {
+      provider,
+      model,
+      timeoutMs,
+      maxAttempts,
+    },
+    process.env
+  );
+  const llm = createLLMClientFromProviderConfig(providerConfig, process.env);
+  console.log(
+    `mode=local repoPath=${repoPath} phase=${phase} profile=${profile} provider=${providerConfig.provider} model=${providerConfig.model ?? "DEFAULT"}`
+  );
+
   const interpreter = new PolicyInterpreter({
     repoRoot: repoPath,
     profile,
@@ -97,7 +101,10 @@ try {
     `policyId=${resolvedPlan.metadata.policyId} modeLabel=${resolvedPlan.metadata.modeLabel ?? "UNSPECIFIED"}`
   );
 } catch (error) {
-  if (error instanceof CycleFailError) {
+  if (error instanceof ConfigurationError) {
+    console.error(`run:local configuration error: ${error.message}`);
+    process.exitCode = 1;
+  } else if (error instanceof CycleFailError) {
     console.error(`run:local cycle failed: ${error.message}`);
     process.exitCode = 1;
   } else if (error instanceof FailFastError) {
