@@ -5,6 +5,12 @@ import type {
   Step,
 } from "./plan.types";
 import type { StatePatch, StepExecutionResult, StepExecutor } from "./step.registry";
+import { FailFastError } from "./errors";
+import { hasForbiddenMemoryPayloadKeys } from "./memory_payload.guard";
+import {
+  isAllowedDecisionScope,
+  normalizeDecisionScope,
+} from "../decision/decision.scope";
 
 function okResult(data?: unknown, patch?: StatePatch): StepExecutionResult {
   return {
@@ -18,6 +24,13 @@ function errorResult(message: string): StepExecutionResult {
   return {
     kind: "error",
     error: { message },
+  };
+}
+
+function unavailableResult(reason: string): StepExecutionResult {
+  return {
+    kind: "unavailable",
+    reason,
   };
 }
 
@@ -63,6 +76,35 @@ function buildPrompt(state: GraphState): string {
   }
 
   return sections.join("\n\n");
+}
+
+function assertScopeAllowed(scope: string, where: string): string {
+  const normalized = normalizeDecisionScope(scope);
+  if (!isAllowedDecisionScope(normalized)) {
+    throw new FailFastError(`DECISION_SCOPE_INVALID ${where} scope='${scope}'`);
+  }
+  return normalized;
+}
+
+function assertOptionalScopeField(
+  value: unknown,
+  where: string,
+  fieldName: string
+): void {
+  if (typeof value === "undefined" || value === null) {
+    return;
+  }
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new FailFastError(`DECISION_SCOPE_INVALID ${where} ${fieldName} must be string`);
+  }
+  assertScopeAllowed(value, `${where}.${fieldName}`);
+}
+
+function assertGenericPayloadScopes(payload: Record<string, unknown>, where: string): void {
+  assertOptionalScopeField(payload.scope, where, "scope");
+  assertOptionalScopeField(payload.currentDomain, where, "currentDomain");
+  assertOptionalScopeField(payload.decisionScope, where, "decisionScope");
+  assertOptionalScopeField(payload.evidenceScope, where, "evidenceScope");
 }
 
 const loadDocsForMode: StepExecutor = async (
@@ -122,8 +164,35 @@ const retrieveMemory: StepExecutor = (
   return okResult({ items: items.slice(0, Math.floor(topK)) });
 };
 
-const retrieveDecisionContext: StepExecutor = (): StepExecutionResult => {
-  return errorResult("NOT_IMPLEMENTED_PRD005");
+const retrieveDecisionContext: StepExecutor = async (
+  state: Readonly<GraphState>,
+  step: Step,
+  deps: PlanExecutorDeps
+): Promise<StepExecutionResult> => {
+  const payload = readStepPayload(step);
+  const input =
+    typeof payload.input === "string" && payload.input.trim() !== ""
+      ? payload.input
+      : state.userInput;
+  const currentDomainCandidate =
+    typeof payload.currentDomain === "string" && payload.currentDomain.trim() !== ""
+      ? payload.currentDomain
+      : state.currentDomain;
+
+  if (typeof currentDomainCandidate === "string" && currentDomainCandidate.trim() !== "") {
+    assertScopeAllowed(currentDomainCandidate, "RetrieveDecisionContext");
+  }
+
+  if (!deps.retrieveDecisionContext) {
+    return errorResult("NOT_IMPLEMENTED_PRD005");
+  }
+
+  const result = await deps.retrieveDecisionContext({
+    input,
+    currentDomain: currentDomainCandidate,
+  });
+
+  return okResult(result, { actOutput: result });
 };
 
 const promptAssemble: StepExecutor = (
@@ -162,26 +231,20 @@ const llmCall: StepExecutor = async (
   });
 };
 
-const summarizeMemory: StepExecutor = (
-  state: Readonly<GraphState>,
-  step: Step
-): StepExecutionResult => {
-  const payload = readStepPayload(step);
-  const response =
-    typeof payload.response === "string" && payload.response.trim() !== ""
-      ? payload.response
-      : state.lastResponse ?? "";
-  const summary = response.trim();
-  const keywords = summary === "" ? [] : summary.split(/\s+/).slice(0, 16);
-
-  return okResult({ summary, keywords }, { actOutput: { summary, keywords } });
+const summarizeMemory: StepExecutor = (): StepExecutionResult => {
+  return unavailableResult("LEGACY_SUMMARIZE_MEMORY_DISABLED");
 };
 
 const memoryWrite: StepExecutor = async (
   state: Readonly<GraphState>,
-  _step: Step,
+  step: Step,
   deps: PlanExecutorDeps
 ): Promise<StepExecutionResult> => {
+  const payload = readStepPayload(step);
+  if (hasForbiddenMemoryPayloadKeys(payload) || hasForbiddenMemoryPayloadKeys(state.stepResults)) {
+    throw new FailFastError("MEMORY_WRITE_FORBIDDEN_PAYLOAD_KEYS");
+  }
+
   await deps.memoryRepo.write({
     userInput: state.userInput,
     assembledPrompt: state.assembledPrompt,
@@ -194,16 +257,70 @@ const memoryWrite: StepExecutor = async (
   });
 };
 
-const persistDecision: StepExecutor = (): StepExecutionResult => {
-  return errorResult("NOT_IMPLEMENTED_PRD005");
+const persistDecision: StepExecutor = async (
+  _state: Readonly<GraphState>,
+  step: Step,
+  deps: PlanExecutorDeps
+): Promise<StepExecutionResult> => {
+  const payload = readStepPayload(step);
+  assertGenericPayloadScopes(payload, "PersistDecision");
+
+  const decision = asRecord(payload.decision);
+  const scope = decision.scope;
+  if (typeof scope !== "string" || scope.trim() === "") {
+    throw new FailFastError("DECISION_SCOPE_INVALID PersistDecision.decision.scope required");
+  }
+  assertScopeAllowed(scope, "PersistDecision.decision.scope");
+
+  if (!deps.persistDecision) {
+    return errorResult("NOT_IMPLEMENTED_PRD005");
+  }
+
+  const result = await deps.persistDecision({ decision });
+  return okResult(result, { actOutput: result });
 };
 
-const persistEvidence: StepExecutor = (): StepExecutionResult => {
-  return errorResult("NOT_IMPLEMENTED_PRD005");
+const persistEvidence: StepExecutor = async (
+  _state: Readonly<GraphState>,
+  step: Step,
+  deps: PlanExecutorDeps
+): Promise<StepExecutionResult> => {
+  const payload = readStepPayload(step);
+  assertGenericPayloadScopes(payload, "PersistEvidence");
+  const evidence = asRecord(payload.evidence);
+  assertOptionalScopeField(evidence.scope, "PersistEvidence.evidence", "scope");
+
+  if (!deps.persistEvidence) {
+    return errorResult("NOT_IMPLEMENTED_PRD005");
+  }
+
+  const result = await deps.persistEvidence({ evidence });
+  return okResult(result, { actOutput: result });
 };
 
-const linkDecisionEvidence: StepExecutor = (): StepExecutionResult => {
-  return errorResult("NOT_IMPLEMENTED_PRD005");
+const linkDecisionEvidence: StepExecutor = async (
+  _state: Readonly<GraphState>,
+  step: Step,
+  deps: PlanExecutorDeps
+): Promise<StepExecutionResult> => {
+  const payload = readStepPayload(step);
+  assertGenericPayloadScopes(payload, "LinkDecisionEvidence");
+
+  const decisionId = payload.decisionId;
+  const evidenceId = payload.evidenceId;
+  if (typeof decisionId !== "string" || decisionId.trim() === "") {
+    throw new FailFastError("LINK_DECISION_EVIDENCE_INVALID decisionId must be a non-empty string");
+  }
+  if (typeof evidenceId !== "string" || evidenceId.trim() === "") {
+    throw new FailFastError("LINK_DECISION_EVIDENCE_INVALID evidenceId must be a non-empty string");
+  }
+
+  if (!deps.linkDecisionEvidence) {
+    return errorResult("NOT_IMPLEMENTED_PRD005");
+  }
+
+  const result = await deps.linkDecisionEvidence({ decisionId, evidenceId });
+  return okResult(result, { actOutput: result });
 };
 
 const persistSession: StepExecutor = (): StepExecutionResult => {

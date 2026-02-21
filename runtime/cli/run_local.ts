@@ -13,8 +13,10 @@ import {
   toPolicyRef,
 } from "../graph/graph";
 import { createRuntimeStepExecutorRegistry } from "../graph/step_executor_registry";
+import { createRuntimePlanExecutorDeps } from "../graph/plan_executor_deps";
 import { InMemoryRepository } from "../memory/in_memory.repository";
 import { CycleFailError, FailFastError } from "../../src/core/plan/errors";
+import { createSQLiteStorageLayer } from "../../src/adapter/storage/sqlite";
 
 const { input, repoPath, phase, profile } = parseRunLocalArgs(
   process.argv.slice(2)
@@ -51,44 +53,53 @@ try {
 
   const sessionStore = new FileSessionStore(repoPath);
   const memoryRepo = new InMemoryRepository();
+  const storageLayer = createSQLiteStorageLayer();
+  storageLayer.storage.connect();
   const stepExecutorRegistry = await createRuntimeStepExecutorRegistry({
     repoRoot: repoPath,
   });
 
-  const { result } = await runSessionLifecycle({
-    store: sessionStore,
-    expectedHash,
-    run: async (loadedSession) => {
-      const graphResult = await runGraph(
-        {
-          userInput: input,
-          executionPlan,
-          policyRef,
-          currentMode: resolvedPlan.metadata.modeLabel,
-        },
-        {
-          planExecutorDeps: {
-            llmClient: llm,
-            memoryRepo,
-          },
-          stepExecutorRegistry,
-        }
-      );
+  const { result } = await (async () => {
+    try {
+      return await runSessionLifecycle({
+        store: sessionStore,
+        expectedHash,
+        run: async (loadedSession) => {
+          const graphResult = await runGraph(
+            {
+              userInput: input,
+              executionPlan,
+              policyRef,
+              currentMode: resolvedPlan.metadata.modeLabel,
+            },
+            {
+              planExecutorDeps: createRuntimePlanExecutorDeps({
+                llmClient: llm,
+                memoryRepo,
+                storageLayer,
+              }),
+              stepExecutorRegistry,
+            }
+          );
 
-      return {
-        success: true,
-        result: graphResult,
-        nextSession: {
-          sessionId: loadedSession?.sessionId ?? randomUUID(),
-          memoryRef: loadedSession?.memoryRef ?? "runtime:memory:in-memory",
-          repoScanVersion:
-            graphResult.repoScanVersion ?? loadedSession?.repoScanVersion ?? "none",
-          lastExecutionPlanHash: expectedHash,
-          updatedAt: loadedSession?.updatedAt ?? "",
+          return {
+            success: true,
+            result: graphResult,
+            nextSession: {
+              sessionId: loadedSession?.sessionId ?? randomUUID(),
+              memoryRef: loadedSession?.memoryRef ?? "runtime:memory:in-memory",
+              repoScanVersion:
+                graphResult.repoScanVersion ?? loadedSession?.repoScanVersion ?? "none",
+              lastExecutionPlanHash: expectedHash,
+              updatedAt: loadedSession?.updatedAt ?? "",
+            },
+          };
         },
-      };
-    },
-  });
+      });
+    } finally {
+      storageLayer.storage.close();
+    }
+  })();
 
   const output = result.lastResponse ?? "";
   console.log("----- output -----");

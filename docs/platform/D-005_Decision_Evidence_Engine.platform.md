@@ -43,8 +43,14 @@ CREATE TABLE anchors (
 );
 ```
 
-### Scope Validation Policy (Application Level)
-- `scope` 값은 DB 제약 대신 애플리케이션 레벨에서 허용 목록과 대조 검증하며, 불일치 시 Fail-Fast 한다.
+### Scope Validation Policy (Application Level, LOCK)
+- `scope` 값은 DB 제약 대신 애플리케이션 레벨에서 Approved scope allowlist (v1): ['global', 'runtime', 'wms', 'coding', 'ui']와 대조 검증하며, 불일치 시 Fail-Fast 한다.
+- Storage layer MUST remain passive and not enforce scope validation.
+- All writes to `Decision.scope` MUST be validated by the engine/handler before calling storage.
+
+Scope Semantic Definition:
+Refer to PRD-005: Decision / Evidence Engine – Scope Semantic Definition (LOCK).
+This section is authoritative and must not be redefined here.
 
 ## 2. Indexing Strategy
 - **Versioning**: `idx_decisions_root_version` (root_id, version)
@@ -62,14 +68,25 @@ CREATE TABLE anchors (
 ## 3. Retrieval Query Logic (Hierarchical Loading)
 런타임은 다음 4개 쿼리를 계층적으로 순차 실행하여 결과를 수집한다. Retrieval operates strictly on the explicit `currentDomain` field and is independent of the current Phase.
 
+**Domain Change Policy (LOCK)**:
+- Domain changes MUST be manual-only.
+- Phase/Mode MUST NOT automatically modify `currentDomain`.
+
 ```sql
 -- 1. Global Axis, 2. Domain Axis, 3. Domain Lock, 4. Domain Normal (Sequential Execution)
 -- ? represents currentDomain
 SELECT * FROM decisions WHERE is_active = 1 AND scope = ? AND strength = ?;
 ```
 
+LOCK Clarification:
+- The query above represents a single hierarchical step.
+- The runtime MUST execute four separate sequential queries
+  (global+axis → domain+axis → domain+lock → domain+normal).
+- This MUST NOT be replaced with a single combined ORDER BY query.
+
 ## 4. Anchor Integrity Guide (Non-FK, LOCK)
 - `target_ref`는 다형적 참조이며 애플리케이션 레벨에서 `type`과 대상 테이블의 존재 여부를 검증한다.
+- **Soft Integrity Policy**: If `target_ref` is missing in the database, the runtime MUST NOT Fail-Fast and MUST continue execution.
 - 신규 버전 생성 시 기존 Anchor를 자동 업데이트하지 않으며, 생성 시점의 특정 version을 유지한다.
 
 ## 5. Write Implementation Rules

@@ -20,6 +20,7 @@ import {
   type StepExecutorRegistry,
 } from "./step.registry";
 import { CycleFailError, FailFastError } from "./errors";
+import { hasForbiddenMemoryPayloadKeys } from "./memory_payload.guard";
 
 const FAIL_FAST_STEP_TYPES = new Set<StepType>([
   "PersistMemory",
@@ -30,6 +31,8 @@ const FAIL_FAST_STEP_TYPES = new Set<StepType>([
 ]);
 
 const LEGACY_FAIL_FAST_STEP_KINDS = new Set(["MemoryWrite", "memory_write"]);
+const MEMORY_WRITE_STEP_TYPES = new Set<StepType>(["PersistMemory"]);
+const LEGACY_MEMORY_WRITE_STEP_KINDS = new Set(["MemoryWrite", "memory_write", "PersistMemory"]);
 
 function assertRunnable(plan: ExecutionPlan, state: GraphState): void {
   if (!state.policyRef || typeof state.policyRef !== "object") {
@@ -102,6 +105,14 @@ function wrapStepFailure(kind: string, cause: unknown, isFailFast: boolean): Err
     return new FailFastError(`STEP_EXECUTION_FAILED ${kind}: ${message}`, { cause });
   }
   return new CycleFailError(`STEP_EXECUTION_FAILED ${kind}: ${message}`, { cause });
+}
+
+function assertMemoryWritePayloadClean(payload: unknown, stepKey: string): void {
+  if (hasForbiddenMemoryPayloadKeys(payload)) {
+    throw new FailFastError(
+      `MEMORY_WRITE_FORBIDDEN_PAYLOAD_KEYS step='${stepKey}' keys=[summary,keywords,memories]`
+    );
+  }
 }
 
 function assertPlanVersionGate(plan: ExecutionPlan): asserts plan is ExecutionPlanV1 {
@@ -195,6 +206,9 @@ export async function executePlan(
     const v1Plan = validateV1Plan(plan, registry);
 
     for (const step of v1Plan.steps) {
+      if (MEMORY_WRITE_STEP_TYPES.has(step.type)) {
+        assertMemoryWritePayloadClean(step.payload, step.id);
+      }
       if (step.type === "RetrieveMemory" && typeof v1Plan.metadata.topK !== "number") {
         throw new CycleFailError("RetrieveMemory requires metadata.topK");
       }
@@ -226,6 +240,10 @@ export async function executePlan(
     const stepKind = resolveStepKind(step);
     if (stepKind === "") {
       throw new Error("PLAN_EXECUTION_ERROR step.kind or step.type must be a non-empty string");
+    }
+    if (LEGACY_MEMORY_WRITE_STEP_KINDS.has(stepKind)) {
+      const legacyPayload = "params" in step ? step.params : undefined;
+      assertMemoryWritePayloadClean(legacyPayload, stepKind);
     }
 
     let result: StepExecutionResult;

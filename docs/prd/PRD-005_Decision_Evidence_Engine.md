@@ -23,6 +23,12 @@ This system distinguishes two orthogonal concepts:
    - Domain is used exclusively for Decision retrieval filtering.
    - Domain corresponds to the `scope` field of Decision.
 
+**Domain Change Policy (LOCK)**:
+- Domain changes MUST be manual-only.
+- Phase/Mode MUST NOT automatically modify `currentDomain`.
+- PolicyInterpreter and Router are prohibited from deriving Domain from Phase.
+- `currentDomain` may only change via explicit user or policy instruction.
+
 These two axes must never be conflated. Phase = behavioral context. Domain = semantic applicability boundary. Decision retrieval must use Domain (scope), not Phase.
 
 ## Scope
@@ -52,8 +58,8 @@ These two axes must never be conflated. Phase = behavioral context. Domain = sem
 - `previousVersionId`: 직전 버전을 가리키는 ID
 - `text`: 결정된 규칙의 한 줄 요약
 - `strength`: `axis` | `lock` | `normal`
-- `scope`: `global` | `runtime` | `wms` | `coding` | `ui` 등
-- `isActive`: 현재 활성 여부 (boolean)
+- `scope`: 'global' | 'runtime' | 'wms' | 'coding' | 'ui'
+- `isActive`: 현재 활성여부 (boolean)
 - `createdAt`: 생성 시점 (timestamp)
 
 ### Decision Versioning Model (LOCK)
@@ -86,11 +92,34 @@ These two axes must never be conflated. Phase = behavioral context. Domain = sem
 - Anchor는 특정 Decision "버전"을 가리킨다.
 - Decision의 신규 버전이 생성되어도 기존 Anchor는 자동 갱신되지 않고 생성 당시의 맥락을 보존한다.
 
+**Anchor Integrity Policy (LOCK)**:
+- Anchor `targetRef` integrity is Soft.
+- If `targetRef` does not resolve to an existing Decision/Evidence:
+    - Runtime MUST NOT Fail-Fast.
+    - Runtime MAY mark anchor as "broken".
+    - System execution MUST continue.
+
 ## Execution Rules
 - **Domain Context Requirement**: Runtime MUST maintain an explicit Domain value (e.g., `GraphState.currentDomain`). This value determines Decision retrieval scope, is independent from Phase/Mode, and must not be implicitly derived from Phase. Setting `currentDomain` is a runtime state responsibility and may be changed by explicit user/policy action only.
 - **Domain Default (LOCK)**:
   - If `currentDomain` is not explicitly set for the session/turn, Decision retrieval MUST load **only**: `global + axis` and MUST NOT attempt domain-specific retrieval.
   - This prevents implicit Phase→Domain derivation and avoids arbitrary defaults.
+- **Scope Allowlist Validation (LOCK)**:
+  - Application layer MUST validate `Decision.scope` against the Approved scope allowlist (v1): ['global', 'runtime', 'wms', 'coding', 'ui'].
+  - Invalid scope MUST trigger Fail-Fast before persistence.
+  - Storage layer MUST remain passive and not enforce scope validation.
+
+Scope Semantic Definition (LOCK):
+- global  : Cross-domain architectural principles and invariant rules.
+- runtime : Orchestration engine / execution framework decisions.
+- wms     : Writing Management System domain logic.
+- coding  : Code generation / repository structure decisions.
+- ui      : User interface and presentation layer decisions.
+
+This list is authoritative for v1.
+Any new scope value requires PRD-level change.
+Ad-hoc scope extension is prohibited.
+
 - **즉시 저장 (Immediate Persist)**: `SAVE_DECISION` 또는 `SAVE_EVIDENCE` 확정 즉시 DB에 저장되며 다음 턴부터 반영된다.
 - **Retrieval 우선순위 (Decision)**: 
     1. `global + axis` (최우선)

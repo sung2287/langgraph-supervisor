@@ -83,6 +83,7 @@ export interface GraphState {
   readonly executionPlan: ExecutionPlan;
   readonly policyRef: PolicyRef;
   readonly currentMode?: string;
+  readonly currentDomain?: string;
   readonly loadedDocs?: readonly string[];
   readonly selectedContext?: string;
   readonly assembledPrompt?: string;
@@ -129,6 +130,40 @@ export interface PromptAssemblyInput {
 export interface PlanExecutorDeps {
   readonly llmClient: LLMClientPort;
   readonly memoryRepo: MemoryRepositoryPort;
+  readonly retrieveDecisionContext?: (input: {
+    readonly input: string;
+    readonly currentDomain?: string;
+  }) => Promise<{
+    readonly decisions: readonly unknown[];
+    readonly anchors: readonly unknown[];
+  }> | {
+    readonly decisions: readonly unknown[];
+    readonly anchors: readonly unknown[];
+  };
+  readonly persistDecision?: (input: {
+    readonly decision: Readonly<Record<string, unknown>>;
+  }) => Promise<{
+    readonly id: string;
+    readonly version: number;
+  }> | {
+    readonly id: string;
+    readonly version: number;
+  };
+  readonly persistEvidence?: (input: {
+    readonly evidence: Readonly<Record<string, unknown>>;
+  }) => Promise<{
+    readonly id: string;
+  }> | {
+    readonly id: string;
+  };
+  readonly linkDecisionEvidence?: (input: {
+    readonly decisionId: string;
+    readonly evidenceId: string;
+  }) => Promise<{
+    readonly status: "linked";
+  }> | {
+    readonly status: "linked";
+  };
   readonly loadDocsForMode?: (
     policyRef: PolicyRef
   ) => Promise<readonly string[]> | readonly string[];

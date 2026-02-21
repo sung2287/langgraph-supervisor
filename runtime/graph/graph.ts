@@ -26,6 +26,7 @@ export interface RunGraphInput {
   executionPlan: CoreExecutionPlan;
   policyRef: PolicyRef;
   currentMode?: string;
+  currentDomain?: string;
 }
 
 export const GraphStateAnnotation = Annotation.Root({
@@ -33,6 +34,7 @@ export const GraphStateAnnotation = Annotation.Root({
   executionPlan: Annotation<CoreExecutionPlan>,
   policyRef: Annotation<PolicyRef>,
   currentMode: Annotation<string | undefined>,
+  currentDomain: Annotation<string | undefined>,
   loadedDocs: Annotation<readonly string[] | undefined>,
   selectedContext: Annotation<string | undefined>,
   assembledPrompt: Annotation<string | undefined>,
@@ -195,6 +197,7 @@ export async function runGraph(
     executionPlan: input.executionPlan,
     policyRef: input.policyRef,
     currentMode: input.currentMode,
+    currentDomain: input.currentDomain,
     loadedDocs: undefined,
     selectedContext: undefined,
     assembledPrompt: undefined,
