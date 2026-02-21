@@ -290,6 +290,7 @@ test("runtime normalization: emit step_contract_version=1 for legacy-only steps"
   }
   assert.equal(corePlan.step_contract_version, "1");
   assert.deepEqual(corePlan.extensions, []);
+  assert.equal(corePlan.steps[0]?.type, "ContextSelect");
 });
 
 test("runtime normalization: emit step_contract_version=1.1 when v1.1 step exists", () => {
@@ -315,4 +316,5 @@ test("runtime normalization: emit step_contract_version=1.1 when v1.1 step exist
   }
   assert.equal(corePlan.step_contract_version, "1.1");
   assert.deepEqual(corePlan.extensions, []);
+  assert.equal(corePlan.steps[0]?.type, "ContextSelect");
 });

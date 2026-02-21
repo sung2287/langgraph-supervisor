@@ -62,7 +62,7 @@ const POLICY_TO_STEP_TYPE: Readonly<Record<string, StepType>> = Object.freeze({
   context_select: "ContextSelect",
   RetrieveMemory: "RetrieveMemory",
   retrieve_memory: "RetrieveMemory",
-  recall: "RetrieveMemory",
+  recall: "ContextSelect",
   RetrieveDecisionContext: "RetrieveDecisionContext",
   retrieve_decision_context: "RetrieveDecisionContext",
   PromptAssemble: "PromptAssemble",
