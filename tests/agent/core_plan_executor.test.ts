@@ -1,4 +1,8 @@
-/** Intent: PRD-001/003 core runtime lock — registry-dispatched execution, neutrality to currentMode, and immutable policyRef handling. */
+/**
+ * Intent: PRD-001/003 core runtime lock — registry-dispatched execution, neutrality to currentMode, and immutable policyRef handling.
+ * Scope: Core legacy execution path behavior including deterministic step dispatch and explicit domain-state mutation via dedicated step.
+ * Non-Goals: Step-contract v1.1 ordering validation or storage-layer semantics.
+ */
 import test from "node:test";
 import assert from "node:assert/strict";
 import { executePlan } from "../../src/core/plan/plan.executor";
@@ -216,4 +220,34 @@ test("guard: empty executionPlan fails fast", async () => {
     },
     /executionPlan\.steps must not be empty/i
   );
+});
+
+test("domain lock: setDomain persists and RetrieveDecisionContext override is transient only", async () => {
+  const plan: ExecutionPlan = {
+    version: "1.0",
+    steps: [
+      { kind: "setDomain", params: { currentDomain: "coding" } },
+      { kind: "RetrieveDecisionContext", params: { input: "hello", currentDomain: "ui" } },
+      { kind: "RetrieveDecisionContext", params: { input: "hello" } },
+    ],
+  };
+  const policyRef = Object.freeze({ policyId: "policy-alpha" });
+  const retrievalDomains: Array<string | undefined> = [];
+  const deps: PlanExecutorDeps = {
+    ...makeDeps(new SpyMemoryRepo()),
+    retrieveDecisionContext: ({ currentDomain }) => {
+      retrievalDomains.push(currentDomain);
+      return { decisions: [], anchors: [] };
+    },
+  };
+
+  const result = await executePlan(
+    plan,
+    makeState(plan, policyRef),
+    deps,
+    createRegistryWithExecutors(coreStepExecutors)
+  );
+
+  assert.equal(result.currentDomain, "coding");
+  assert.deepEqual(retrievalDomains, ["ui", "coding"]);
 });

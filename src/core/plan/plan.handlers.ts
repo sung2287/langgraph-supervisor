@@ -4,6 +4,7 @@ import type {
   PolicyRef,
   Step,
 } from "./plan.types";
+import type { AnchorInput, AnchorType } from "../anchor/anchor.types";
 import type { StatePatch, StepExecutionResult, StepExecutor } from "./step.registry";
 import { FailFastError } from "./errors";
 import { hasForbiddenMemoryPayloadKeys } from "./memory_payload.guard";
@@ -107,6 +108,22 @@ function assertGenericPayloadScopes(payload: Record<string, unknown>, where: str
   assertOptionalScopeField(payload.evidenceScope, where, "evidenceScope");
 }
 
+function readAnchorType(value: unknown): AnchorType {
+  if (value === "decision_link" || value === "evidence_link") {
+    return value;
+  }
+  throw new FailFastError(
+    "PERSIST_ANCHOR_INVALID type must be 'decision_link' or 'evidence_link'"
+  );
+}
+
+function readNonEmptyString(value: unknown, where: string): string {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new FailFastError(`PERSIST_ANCHOR_INVALID ${where} must be a non-empty string`);
+  }
+  return value.trim();
+}
+
 const loadDocsForMode: StepExecutor = async (
   state: Readonly<GraphState>,
   _step: Step,
@@ -174,14 +191,15 @@ const retrieveDecisionContext: StepExecutor = async (
     typeof payload.input === "string" && payload.input.trim() !== ""
       ? payload.input
       : state.userInput;
-  const currentDomainCandidate =
-    typeof payload.currentDomain === "string" && payload.currentDomain.trim() !== ""
-      ? payload.currentDomain
-      : state.currentDomain;
-
-  if (typeof currentDomainCandidate === "string" && currentDomainCandidate.trim() !== "") {
-    assertScopeAllowed(currentDomainCandidate, "RetrieveDecisionContext");
-  }
+  const payloadDomain =
+    typeof payload.currentDomain === "string" ? payload.currentDomain.trim() : "";
+  // Read-only step: payload.currentDomain may override retrieval for this call only.
+  // Domain persistence is handled exclusively by setDomain step.
+  const domainForLookup = payloadDomain !== "" ? payloadDomain : state.currentDomain;
+  const normalizedDomain =
+    typeof domainForLookup === "string" && domainForLookup.trim() !== ""
+      ? assertScopeAllowed(domainForLookup, "RetrieveDecisionContext")
+      : undefined;
 
   if (!deps.retrieveDecisionContext) {
     return errorResult("NOT_IMPLEMENTED_PRD005");
@@ -189,10 +207,24 @@ const retrieveDecisionContext: StepExecutor = async (
 
   const result = await deps.retrieveDecisionContext({
     input,
-    currentDomain: currentDomainCandidate,
+    currentDomain: normalizedDomain,
   });
 
   return okResult(result, { actOutput: result });
+};
+
+const setDomain: StepExecutor = (
+  _state: Readonly<GraphState>,
+  step: Step
+): StepExecutionResult => {
+  const payload = readStepPayload(step);
+  const rawDomain = payload.currentDomain;
+  if (typeof rawDomain !== "string" || rawDomain.trim() === "") {
+    throw new FailFastError("SET_DOMAIN_INVALID currentDomain must be a non-empty string");
+  }
+
+  const currentDomain = assertScopeAllowed(rawDomain, "setDomain.currentDomain");
+  return okResult({ currentDomain }, { currentDomain, actOutput: { currentDomain } });
 };
 
 const promptAssemble: StepExecutor = (
@@ -323,6 +355,50 @@ const linkDecisionEvidence: StepExecutor = async (
   return okResult(result, { actOutput: result });
 };
 
+const persistAnchor: StepExecutor = async (
+  _state: Readonly<GraphState>,
+  step: Step,
+  deps: PlanExecutorDeps
+): Promise<StepExecutionResult> => {
+  const payload = readStepPayload(step);
+  const anchorType = readAnchorType(payload.type);
+  const targetRef = readNonEmptyString(
+    payload.target_ref ?? payload.targetRef,
+    "target_ref"
+  );
+  const anchorInput: AnchorInput = {
+    id: readNonEmptyString(payload.id, "id"),
+    hint: readNonEmptyString(payload.hint, "hint"),
+    targetRef,
+    type: anchorType,
+  };
+
+  if (anchorType === "decision_link") {
+    if (!deps.decisionExists) {
+      throw new FailFastError("NOT_IMPLEMENTED_PRD006 decisionExists dependency is required");
+    }
+    const decisionExists = await deps.decisionExists(targetRef);
+    if (!decisionExists) {
+      throw new FailFastError(`ANCHOR_TARGET_REF_INVALID decision id='${targetRef}' not found`);
+    }
+  } else {
+    if (!deps.evidenceExists) {
+      throw new FailFastError("NOT_IMPLEMENTED_PRD006 evidenceExists dependency is required");
+    }
+    const evidenceExists = await deps.evidenceExists(targetRef);
+    if (!evidenceExists) {
+      throw new FailFastError(`ANCHOR_TARGET_REF_INVALID evidence id='${targetRef}' not found`);
+    }
+  }
+
+  if (!deps.anchorPort) {
+    throw new FailFastError("NOT_IMPLEMENTED_PRD006 anchorPort dependency is required");
+  }
+
+  await deps.anchorPort.insertAnchor(anchorInput);
+  return okResult({ id: anchorInput.id }, { actOutput: { id: anchorInput.id } });
+};
+
 const persistSession: StepExecutor = async (
   state: Readonly<GraphState>,
   step: Step,
@@ -361,6 +437,12 @@ export const coreStepExecutors: Readonly<Record<string, StepExecutor>> = {
   PersistDecision: persistDecision,
   PersistEvidence: persistEvidence,
   LinkDecisionEvidence: linkDecisionEvidence,
+  setDomain: setDomain,
+  set_domain: setDomain,
+  SetDomain: setDomain,
+  persistAnchor: persistAnchor,
+  persist_anchor: persistAnchor,
+  PersistAnchor: persistAnchor,
   PersistSession: persistSession,
   LoadDocsForMode: loadDocsForMode,
   MemoryWrite: memoryWrite,
