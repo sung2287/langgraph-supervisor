@@ -323,8 +323,30 @@ const linkDecisionEvidence: StepExecutor = async (
   return okResult(result, { actOutput: result });
 };
 
-const persistSession: StepExecutor = (): StepExecutionResult => {
-  return okResult({ status: "persisted" });
+const persistSession: StepExecutor = async (
+  state: Readonly<GraphState>,
+  step: Step,
+  deps: PlanExecutorDeps
+): Promise<StepExecutionResult> => {
+  if (!deps.persistSession) {
+    throw new FailFastError("NOT_IMPLEMENTED_PRD004");
+  }
+
+  const payload = readStepPayload(step);
+  const projectIdFromPayload = payload.projectId;
+  const projectId =
+    typeof projectIdFromPayload === "string" && projectIdFromPayload.trim() !== ""
+      ? projectIdFromPayload
+      : state.projectId;
+  if (typeof projectId !== "string" || projectId.trim() === "") {
+    throw new FailFastError("PERSIST_SESSION_INVALID projectId is required");
+  }
+
+  const result = await deps.persistSession({
+    projectId,
+    stateSnapshot: state,
+  });
+  return okResult(result, { actOutput: result });
 };
 
 export const coreStepExecutors: Readonly<Record<string, StepExecutor>> = {

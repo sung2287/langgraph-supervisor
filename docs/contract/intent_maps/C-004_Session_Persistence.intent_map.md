@@ -10,6 +10,7 @@
 - **"Session은 참조(Ref) 정보만 저장한다."**
 - **"정책 변경 시 세션은 결코 재사용되지 않는다."**
 - **"Store는 수동적인 저장소이며, 해시 계산 및 정책 판단은 런타임의 몫이다."**
+- **"PersistSession Step (LOCK)**: Persistence is an explicit step, not an implicit lifecycle side-effect."
 
 ## 3. Protection Targets (The What to Protect)
 
@@ -22,3 +23,13 @@
 - **Dangerous Auto-Initialization**: 정책 불일치 시 시스템이 멋대로 데이터를 초기화하고 시작하는 행위를 '데이터 유실 및 정책 위반 위험'으로 정의하고, 이를 **Fail-Fast**로 방지함.
 - **Core Structural Leak**: 세션 저장소(Persistence Layer)가 Core Engine의 노드 구조나 실행 계획을 직접 아는 것을 '구조적 침범'으로 간주하여 필드를 엄격히 제한함.
 - **Non-deterministic Hashing**: 해시 계산의 비결정성은 불필요한 실행 중단을 유발할 수 있으므로, **Stable Canonical Stringify**를 통해 계산의 일관성을 확보함.
+
+## 5. Execution Intent Mapping (LOCK)
+
+- **PersistSession**:
+  - **Trigger**: End of execution cycle.
+  - **Actor**: PlanExecutor.
+  - **Target**: SessionStore.
+  - **Purpose**: Guarantee session continuity between cycles via an explicit, verifiable step.
+  - **Flow**: GraphState → PersistSession Step → SessionStore.
+  - **Constraint**: No implicit persistence allowed. Every write must be traceable to a Step execution.

@@ -14,6 +14,7 @@ import { createStepExecutorRegistry } from "../../src/core/plan/step.registry";
 import { createSQLiteStorageLayer } from "../../src/adapter/storage/sqlite";
 import { FailFastError } from "../../src/core/plan/errors";
 import { createRuntimePlanExecutorDeps } from "../../runtime/graph/plan_executor_deps";
+import { FileSessionStore } from "../../src/session/file_session.store";
 import type {
   ExecutionPlanV1,
   GraphState,
@@ -52,7 +53,10 @@ class NoopMemoryRepo {
   }
 }
 
-function makeRuntimeDeps(storageLayer: ReturnType<typeof createSQLiteStorageLayer>): PlanExecutorDeps {
+function makeRuntimeDeps(
+  storageLayer: ReturnType<typeof createSQLiteStorageLayer>,
+  sessionRoot: string
+): PlanExecutorDeps {
   return createRuntimePlanExecutorDeps({
     llmClient: {
       async generate(prompt: string): Promise<string> {
@@ -61,6 +65,9 @@ function makeRuntimeDeps(storageLayer: ReturnType<typeof createSQLiteStorageLaye
     },
     memoryRepo: new NoopMemoryRepo(),
     storageLayer,
+    sessionStore: new FileSessionStore(sessionRoot),
+    expectedHash: "test-hash",
+    loadedSession: null,
   });
 }
 
@@ -84,6 +91,7 @@ function makeState(plan: ExecutionPlanV1, currentDomain?: string): GraphState {
     userInput: "hello",
     executionPlan: plan,
     policyRef: Object.freeze({ policyId: "policy" }),
+    projectId: "test-project",
     currentMode: "test",
     currentDomain,
     loadedDocs: undefined,
@@ -147,7 +155,7 @@ test("1) wiring live: RetrieveDecisionContext returns data (no NOT_IMPLEMENTED)"
   const result = await executePlan(
     plan,
     makeState(plan, "coding"),
-    makeRuntimeDeps(storageLayer),
+    makeRuntimeDeps(storageLayer, path.dirname(dbPath)),
     makeRegistry()
   );
 
@@ -193,7 +201,7 @@ test("2) wiring live: undefined currentDomain returns only global+axis", async (
   const result = await executePlan(
     plan,
     makeState(plan, undefined),
-    makeRuntimeDeps(storageLayer),
+    makeRuntimeDeps(storageLayer, path.dirname(dbPath)),
     makeRegistry()
   );
 
@@ -234,7 +242,7 @@ test("3) wiring live: PersistDecision writes to SQLite store", async (t) => {
   await executePlan(
     plan,
     makeState(plan, "coding"),
-    makeRuntimeDeps(storageLayer),
+    makeRuntimeDeps(storageLayer, path.dirname(dbPath)),
     makeRegistry()
   );
 
@@ -270,7 +278,13 @@ test("4) end-to-end guard: summary contamination still fails fast", async (t) =>
   });
 
   await assert.rejects(
-    () => executePlan(plan, makeState(plan, "coding"), makeRuntimeDeps(storageLayer), makeRegistry()),
+    () =>
+      executePlan(
+        plan,
+        makeState(plan, "coding"),
+        makeRuntimeDeps(storageLayer, path.dirname(dbPath)),
+        makeRegistry()
+      ),
     (error: unknown) =>
       error instanceof FailFastError && /MEMORY_WRITE_FORBIDDEN_PAYLOAD_KEYS/.test(error.message)
   );

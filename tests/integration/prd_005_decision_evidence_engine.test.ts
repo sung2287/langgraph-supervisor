@@ -65,6 +65,7 @@ function makeDeps(): PlanExecutorDeps {
       },
     },
     memoryRepo: new NoopMemoryRepo(),
+    persistSession: async () => ({ persisted: true }),
   };
 }
 
@@ -88,6 +89,7 @@ function makeState(plan: ExecutionPlanV1): GraphState {
     userInput: "hello",
     executionPlan: plan,
     policyRef: Object.freeze({ policyId: "policy" }),
+    projectId: "test-project",
     currentMode: "test",
     currentDomain: undefined,
     loadedDocs: undefined,

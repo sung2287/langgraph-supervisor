@@ -82,6 +82,7 @@ export interface GraphState {
   readonly userInput: string;
   readonly executionPlan: ExecutionPlan;
   readonly policyRef: PolicyRef;
+  readonly projectId?: string;
   readonly currentMode?: string;
   readonly currentDomain?: string;
   readonly loadedDocs?: readonly string[];
@@ -163,6 +164,14 @@ export interface PlanExecutorDeps {
     readonly status: "linked";
   }> | {
     readonly status: "linked";
+  };
+  readonly persistSession?: (input: {
+    readonly projectId: string;
+    readonly stateSnapshot: GraphState;
+  }) => Promise<{
+    readonly persisted: true;
+  }> | {
+    readonly persisted: true;
   };
   readonly loadDocsForMode?: (
     policyRef: PolicyRef

@@ -31,6 +31,24 @@ AI Orchestration Runtime의 세션 상태를 파일 기반으로 영속화하여
 - **updatedAt Generation**: `updatedAt`은 저장 시점에 `FileSessionStore`(또는 Runtime Adapter)가 ISO timestamp로 채운다. Core Engine은 시간 생성 로직에 의존하지 않는다.
 - **Neutrality Rule**: 모든 런타임 동작은 executionPlan에 정의된 Step을 통해서만 실행된다. Core Engine은 직접적인 기능 플래그(Boolean), 정책 파일, 저장 구현을 참조하지 않는다.
 
+## PersistSession Step (LOCK)
+- **Step Name**: PersistSession
+- **Category**: Mandatory (per PRD-007)
+- **Execution Position**: End of ExecutionPlan cycle (after final Act, before cycle termination).
+- **Responsibility**:
+  - Persist GraphState to SessionStore.
+  - Guarantee atomic write.
+  - Fail-Fast on integrity errors.
+- **Input**:
+  - Full GraphState snapshot.
+  - projectId.
+- **Output**:
+  - Success acknowledgement (no transformation).
+- **Failure Semantics**:
+  - Any persistence failure MUST Fail-Fast.
+  - No silent fallback.
+- **Clarification**: Session persistence is NOT an implicit lifecycle event. It MUST occur through PersistSession Step. All session writes are mediated exclusively via this Step.
+
 ## Data Structures
 ### SessionState (JSON)
 Core 내부 구조를 침범하지 않는 최소 참조 정보만 포함:

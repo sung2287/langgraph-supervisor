@@ -25,6 +25,7 @@ export interface RunGraphInput {
   userInput: string;
   executionPlan: CoreExecutionPlan;
   policyRef: PolicyRef;
+  projectId?: string;
   currentMode?: string;
   currentDomain?: string;
 }
@@ -33,6 +34,7 @@ export const GraphStateAnnotation = Annotation.Root({
   userInput: Annotation<string>,
   executionPlan: Annotation<CoreExecutionPlan>,
   policyRef: Annotation<PolicyRef>,
+  projectId: Annotation<string | undefined>,
   currentMode: Annotation<string | undefined>,
   currentDomain: Annotation<string | undefined>,
   loadedDocs: Annotation<readonly string[] | undefined>,
@@ -135,6 +137,20 @@ export function toCoreExecutionPlan(plan: PolicyExecutionPlan): CoreExecutionPla
   }
 
   const normalizedSteps = plan.steps.map((step, idx) => normalizePolicyStep(step, idx));
+  if (!normalizedSteps.some((step) => step.type === "PersistSession")) {
+    const existingIds = new Set(normalizedSteps.map((step) => step.id));
+    let seq = normalizedSteps.length + 1;
+    let generatedId = `step-${String(seq)}`;
+    while (existingIds.has(generatedId)) {
+      seq += 1;
+      generatedId = `step-${String(seq)}`;
+    }
+    normalizedSteps.push({
+      id: generatedId,
+      type: "PersistSession",
+      payload: {},
+    });
+  }
   const retrieveMemoryStep = normalizedSteps.find((step) => step.type === "RetrieveMemory");
   const retrievePayload = retrieveMemoryStep ? asRecord(retrieveMemoryStep.payload) : {};
   const topKCandidate = retrievePayload.topK;
@@ -196,6 +212,7 @@ export async function runGraph(
     userInput: input.userInput,
     executionPlan: input.executionPlan,
     policyRef: input.policyRef,
+    projectId: input.projectId,
     currentMode: input.currentMode,
     currentDomain: input.currentDomain,
     loadedDocs: undefined,

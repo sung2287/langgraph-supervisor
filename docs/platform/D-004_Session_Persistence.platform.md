@@ -38,3 +38,13 @@ ops/runtime/
   - 디렉토리/파일 쓰기 권한 부재 시: 즉시 종료 (**Fail-Fast**).
 - **Git Policy**:
   - `ops/runtime/` 디렉토리와 내부의 모든 `.json` 및 `.db` 파일은 반드시 `.gitignore`에 포함되어야 함. 로컬 개발 환경의 세션 정보가 형상 관리 시스템에 커밋되는 것을 엄격히 방지함.
+
+## 5. Step Integration Boundary (LOCK)
+
+- **Passive Store**: SessionStore remains a passive data sink.
+- **Step Bridge**: PersistSession Step is the only legal bridge between active runtime state and SessionStore.
+- **Direct Access Prohibition**: The storage layer MUST NOT be invoked directly from runtime logic outside of the Step context.
+- **Dependency Injection (DI)**: Runtime must provide DI for:
+  - `SessionStore` instance.
+  - `PersistSession` handler binding.
+- **Consistency**: PRD-004 now aligns with PRD-007 Step Contract. Every session state write is an explicit Step execution.

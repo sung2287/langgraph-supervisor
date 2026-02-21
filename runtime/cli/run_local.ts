@@ -1,11 +1,9 @@
 import { LocalLLMClient } from "../llm/local.adapter";
 import { OpenAIAdapter } from "../llm/openai.adapter";
 import { RouterLLMClient } from "../llm/router.client";
-import { randomUUID } from "node:crypto";
 import { PolicyInterpreter } from "../../src/policy/interpreter/policy.interpreter";
 import { computeExecutionPlanHash } from "../../src/session/execution_plan_hash";
 import { FileSessionStore } from "../../src/session/file_session.store";
-import { runSessionLifecycle } from "../../src/session/session.lifecycle";
 import { parseRunLocalArgs } from "./run_local.args";
 import {
   runGraph,
@@ -52,6 +50,11 @@ try {
   });
 
   const sessionStore = new FileSessionStore(repoPath);
+  const loadedSession = sessionStore.load();
+  if (loadedSession !== null) {
+    sessionStore.verify(expectedHash);
+    console.log(`[session] loaded session_state.json (sessionId=${loadedSession.sessionId})`);
+  }
   const memoryRepo = new InMemoryRepository();
   const storageLayer = createSQLiteStorageLayer();
   storageLayer.storage.connect();
@@ -59,43 +62,28 @@ try {
     repoRoot: repoPath,
   });
 
-  const { result } = await (async () => {
+  const result = await (async () => {
     try {
-      return await runSessionLifecycle({
-        store: sessionStore,
-        expectedHash,
-        run: async (loadedSession) => {
-          const graphResult = await runGraph(
-            {
-              userInput: input,
-              executionPlan,
-              policyRef,
-              currentMode: resolvedPlan.metadata.modeLabel,
-            },
-            {
-              planExecutorDeps: createRuntimePlanExecutorDeps({
-                llmClient: llm,
-                memoryRepo,
-                storageLayer,
-              }),
-              stepExecutorRegistry,
-            }
-          );
-
-          return {
-            success: true,
-            result: graphResult,
-            nextSession: {
-              sessionId: loadedSession?.sessionId ?? randomUUID(),
-              memoryRef: loadedSession?.memoryRef ?? "runtime:memory:in-memory",
-              repoScanVersion:
-                graphResult.repoScanVersion ?? loadedSession?.repoScanVersion ?? "none",
-              lastExecutionPlanHash: expectedHash,
-              updatedAt: loadedSession?.updatedAt ?? "",
-            },
-          };
+      return await runGraph(
+        {
+          userInput: input,
+          executionPlan,
+          policyRef,
+          projectId: repoPath,
+          currentMode: resolvedPlan.metadata.modeLabel,
         },
-      });
+        {
+          planExecutorDeps: createRuntimePlanExecutorDeps({
+            llmClient: llm,
+            memoryRepo,
+            storageLayer,
+            sessionStore,
+            expectedHash,
+            loadedSession,
+          }),
+          stepExecutorRegistry,
+        }
+      );
     } finally {
       storageLayer.storage.close();
     }

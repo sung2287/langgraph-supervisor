@@ -26,3 +26,25 @@
 - **Core Ignorance**: Core Engine은 Session Persistence의 구체적인 구현 방식(파일, DB 등)을 알지 못해야 한다.
 - **Store Passive Role**: `SessionStore` 구현체는 `executionPlan`의 내용을 해석하거나 비즈니스 로직에 개입하지 않으며, 오직 데이터의 보관과 정합성 검증 책임만 진다.
 - **updatedAt Authority**: `updatedAt`은 저장 계층(`FileSessionStore`)에서 기록되는 메타데이터이며, Core Engine 내부 로직의 입력이나 결정에 사용되지 않는다.
+
+## 5. PersistSession Step Contract (LOCK)
+
+- **Input Payload**:
+  ```json
+  {
+    "projectId": "string",
+    "stateSnapshot": "GraphState"
+  }
+  ```
+- **Output**:
+  ```json
+  {
+    "persisted": true
+  }
+  ```
+- **Invariants**:
+  - No partial write allowed.
+  - Atomic write required.
+  - Overwrite behavior allowed only per SessionState policy.
+  - Any storage exception MUST trigger FailFastError.
+- **Alignment**: This Step fulfills the mandatory requirement declared in PRD-007.

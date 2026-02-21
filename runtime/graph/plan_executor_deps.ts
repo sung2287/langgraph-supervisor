@@ -1,14 +1,19 @@
+import { randomUUID } from "node:crypto";
 import type { PlanExecutorDeps } from "../../src/core/plan/plan.types";
 import {
   type DecisionStrength,
   type SQLiteStorageLayer,
 } from "../../src/adapter/storage/sqlite";
 import { retrieveDecisionContextHierarchically } from "../../src/core/decision/decision_context.service";
+import type { SessionState, SessionStore } from "../../src/session/session.types";
 
 export interface RuntimePlanExecutorDepsOptions {
   readonly llmClient: PlanExecutorDeps["llmClient"];
   readonly memoryRepo: PlanExecutorDeps["memoryRepo"];
   readonly storageLayer: SQLiteStorageLayer;
+  readonly sessionStore?: SessionStore;
+  readonly expectedHash?: string;
+  readonly loadedSession?: SessionState | null;
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -141,6 +146,27 @@ export function createRuntimePlanExecutorDeps(
       );
       return {
         status: "linked",
+      };
+    },
+    persistSession: ({ projectId, stateSnapshot }) => {
+      if (!options.sessionStore) {
+        throw new Error("NOT_IMPLEMENTED_PRD004");
+      }
+      if (typeof options.expectedHash !== "string" || options.expectedHash.trim() === "") {
+        throw new Error("PERSIST_SESSION_INVALID expectedHash is required");
+      }
+
+      const normalizedProjectId = requireString(projectId, "projectId");
+      const previous = options.loadedSession ?? null;
+      options.sessionStore.save({
+        sessionId: previous?.sessionId ?? randomUUID(),
+        memoryRef: previous?.memoryRef ?? "runtime:memory:in-memory",
+        repoScanVersion: stateSnapshot.repoScanVersion ?? previous?.repoScanVersion ?? "none",
+        lastExecutionPlanHash: options.expectedHash,
+        updatedAt: previous?.updatedAt ?? normalizedProjectId,
+      });
+      return {
+        persisted: true,
       };
     },
   };
