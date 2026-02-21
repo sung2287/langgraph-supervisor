@@ -21,7 +21,14 @@ import {
 } from "./step.registry";
 import { CycleFailError, FailFastError } from "./errors";
 
-const FAIL_FAST_STEP_TYPES = new Set<StepType>(["PersistMemory", "PersistSession"]);
+const FAIL_FAST_STEP_TYPES = new Set<StepType>([
+  "PersistMemory",
+  "PersistDecision",
+  "PersistEvidence",
+  "LinkDecisionEvidence",
+  "PersistSession",
+]);
+
 const LEGACY_FAIL_FAST_STEP_KINDS = new Set(["MemoryWrite", "memory_write"]);
 
 function assertRunnable(plan: ExecutionPlan, state: GraphState): void {
@@ -78,10 +85,6 @@ function mergeStepOutcome(
   return applyPatch(nextState, outcomePatch);
 }
 
-function isStepTypeFailFast(stepType: StepType): boolean {
-  return FAIL_FAST_STEP_TYPES.has(stepType);
-}
-
 function createResultError(errorLike: { message: string; name?: string }): Error {
   const error = new Error(errorLike.message);
   if (typeof errorLike.name === "string" && errorLike.name !== "") {
@@ -105,13 +108,13 @@ function assertPlanVersionGate(plan: ExecutionPlan): asserts plan is ExecutionPl
   if (!isExecutionPlanV1(plan)) {
     throw new FailFastError("PLAN_CONTRACT_ERROR step_contract_version is required");
   }
-  if (plan.step_contract_version !== "1") {
+  if (plan.step_contract_version !== "1" && plan.step_contract_version !== "1.1") {
     throw new FailFastError(
       `PLAN_CONTRACT_ERROR unsupported step_contract_version=${String(plan.step_contract_version)}`
     );
   }
   if (!Array.isArray(plan.extensions) || plan.extensions.length !== 0) {
-    throw new FailFastError("PLAN_CONTRACT_ERROR extensions must be an empty array for v1");
+    throw new FailFastError("PLAN_CONTRACT_ERROR extensions must be an empty array");
   }
 }
 
@@ -159,12 +162,17 @@ function validateV1Plan(
 ): ExecutionPlanV1 {
   assertPlanVersionGate(plan);
   validateStepSequence(plan.steps);
+
   for (const step of plan.steps) {
     if (!registry.isRegistered(step.type)) {
       throw new CycleFailError(`PLAN_CONTRACT_ERROR unregistered StepType: ${step.type}`);
     }
   }
   return plan;
+}
+
+function isStepTypeFailFast(stepType: StepType): boolean {
+  return FAIL_FAST_STEP_TYPES.has(stepType);
 }
 
 function resolveLegacyStepResultKey(step: Step): string {
@@ -183,7 +191,7 @@ export async function executePlan(
     stepLog: [...state.stepLog],
   });
 
-  if ("step_contract_version" in plan) {
+  if (isExecutionPlanV1(plan)) {
     const v1Plan = validateV1Plan(plan, registry);
 
     for (const step of v1Plan.steps) {

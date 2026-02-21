@@ -2,20 +2,28 @@ export type StepType =
   | "RepoScan"
   | "ContextSelect"
   | "RetrieveMemory"
+  | "RetrieveDecisionContext"
   | "PromptAssemble"
   | "LLMCall"
   | "SummarizeMemory"
   | "PersistMemory"
+  | "PersistDecision"
+  | "PersistEvidence"
+  | "LinkDecisionEvidence"
   | "PersistSession";
 
 export const STEP_TYPES = Object.freeze([
   "RepoScan",
   "ContextSelect",
   "RetrieveMemory",
+  "RetrieveDecisionContext",
   "PromptAssemble",
   "LLMCall",
   "SummarizeMemory",
   "PersistMemory",
+  "PersistDecision",
+  "PersistEvidence",
+  "LinkDecisionEvidence",
   "PersistSession",
 ] as const satisfies readonly StepType[]);
 
@@ -48,7 +56,7 @@ export interface StepDefinition {
 }
 
 export interface ExecutionPlanV1 {
-  readonly step_contract_version: "1";
+  readonly step_contract_version: "1" | "1.1";
   readonly extensions: readonly [];
   readonly metadata: PlanMetadata;
   readonly steps: readonly StepDefinition[];
@@ -128,10 +136,6 @@ export interface PlanExecutorDeps {
     input: ContextSelectionInput
   ) => Promise<string> | string;
   readonly assemblePrompt?: (input: PromptAssemblyInput) => string;
-}
-
-export function isStepType(value: string): value is StepType {
-  return (STEP_TYPES as readonly string[]).includes(value);
 }
 
 export function isExecutionPlanV1(plan: ExecutionPlan): plan is ExecutionPlanV1 {

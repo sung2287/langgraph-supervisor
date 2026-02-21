@@ -16,11 +16,6 @@ import type {
 
 export type GraphState = CoreGraphState;
 
-/**
- * Note: legacy policy (yaml) steps are normalized to PRD-007 v1 StepDefinition here.
- * While policy files may still use legacy names, the runtime enforces strict v1 LOCK
- * validation when 'step_contract_version' is set to '1' in the execution plan.
- */
 export interface GraphDeps {
   readonly planExecutorDeps: PlanExecutorDeps;
   readonly stepExecutorRegistry: StepExecutorRegistry;
@@ -67,7 +62,9 @@ const POLICY_TO_STEP_TYPE: Readonly<Record<string, StepType>> = Object.freeze({
   context_select: "ContextSelect",
   RetrieveMemory: "RetrieveMemory",
   retrieve_memory: "RetrieveMemory",
-  recall: "RetrieveMemory",
+  recall: "ContextSelect",
+  RetrieveDecisionContext: "RetrieveDecisionContext",
+  retrieve_decision_context: "RetrieveDecisionContext",
   PromptAssemble: "PromptAssemble",
   assemble_prompt: "PromptAssemble",
   LLMCall: "LLMCall",
@@ -78,9 +75,22 @@ const POLICY_TO_STEP_TYPE: Readonly<Record<string, StepType>> = Object.freeze({
   persist_memory: "PersistMemory",
   MemoryWrite: "PersistMemory",
   memory_write: "PersistMemory",
+  PersistDecision: "PersistDecision",
+  persist_decision: "PersistDecision",
+  PersistEvidence: "PersistEvidence",
+  persist_evidence: "PersistEvidence",
+  LinkDecisionEvidence: "LinkDecisionEvidence",
+  link_decision_evidence: "LinkDecisionEvidence",
   PersistSession: "PersistSession",
   persist_session: "PersistSession",
 });
+
+const V11_ONLY_STEP_TYPES = new Set<StepType>([
+  "RetrieveDecisionContext",
+  "PersistDecision",
+  "PersistEvidence",
+  "LinkDecisionEvidence",
+]);
 
 function mapPolicyStepType(rawType: string): StepType {
   const normalized = rawType.trim();
@@ -109,10 +119,8 @@ function normalizePolicyStep(step: PolicyExecutionStep, idx: number): StepDefini
     throw new Error("PLAN_NORMALIZATION_ERROR step requires non-empty kind or type");
   }
 
-  const id =
-    typeof raw.id === "string" && raw.id.trim() !== "" ? raw.id : `step-${String(idx + 1)}`;
   return {
-    id,
+    id: typeof raw.id === "string" && raw.id.trim() !== "" ? raw.id : `step-${String(idx + 1)}`,
     type: mapPolicyStepType(rawKind),
     payload,
   };
@@ -128,9 +136,12 @@ export function toCoreExecutionPlan(plan: PolicyExecutionPlan): CoreExecutionPla
   const retrieveMemoryStep = normalizedSteps.find((step) => step.type === "RetrieveMemory");
   const retrievePayload = retrieveMemoryStep ? asRecord(retrieveMemoryStep.payload) : {};
   const topKCandidate = retrievePayload.topK;
+  const stepContractVersion = normalizedSteps.some((step) => V11_ONLY_STEP_TYPES.has(step.type))
+    ? "1.1"
+    : "1";
 
   return {
-    step_contract_version: "1",
+    step_contract_version: stepContractVersion,
     extensions: [],
     metadata: {
       topK:
@@ -179,7 +190,7 @@ export async function runGraph(
   deps: GraphDeps
 ): Promise<GraphState> {
   const app = buildGraph(deps);
-  const initialState: GraphState = {
+  const initialState = {
     userInput: input.userInput,
     executionPlan: input.executionPlan,
     policyRef: input.policyRef,

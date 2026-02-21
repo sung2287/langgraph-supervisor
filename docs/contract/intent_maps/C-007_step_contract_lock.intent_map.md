@@ -10,6 +10,7 @@
 
 - **"executionPlan은 실행의 유일한 근거다."**
 - **"Step Contract는 변경이 PRD로만 가능하다."**
+- **"v1.1 Controlled Extensibility"**: PRD-005의 결정 엔진 수용을 위해 Flat 모델을 유지하며 Step Registry를 선별적으로 확장한다.
 
 ## 3. Protection Targets (The What to Protect)
 

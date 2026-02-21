@@ -14,6 +14,13 @@ function okResult(data?: unknown, patch?: StatePatch): StepExecutionResult {
   };
 }
 
+function errorResult(message: string): StepExecutionResult {
+  return {
+    kind: "error",
+    error: { message },
+  };
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
   if (typeof value === "object" && value !== null && !Array.isArray(value)) {
     return value as Record<string, unknown>;
@@ -79,25 +86,44 @@ const contextSelect: StepExecutor = async (
   deps: PlanExecutorDeps
 ): Promise<StepExecutionResult> => {
   const payload = readStepPayload(step);
-  const loadedDocs = asStringArray(payload.sources);
-  const sources = loadedDocs.length > 0 ? loadedDocs : [...(state.loadedDocs ?? [])];
+  const payloadSources = asStringArray(payload.sources);
+  const loadedDocs = payloadSources.length > 0 ? payloadSources : [...(state.loadedDocs ?? [])];
   const userInput =
     typeof payload.input === "string" && payload.input.trim() !== ""
       ? payload.input
       : state.userInput;
+
   const selectedContext = deps.selectContext
     ? await deps.selectContext({
         userInput,
-        loadedDocs: sources,
+        loadedDocs,
         stepResults: state.stepResults,
         policyRef: state.policyRef,
       })
-    : sources.join("\n");
+    : loadedDocs.join("\n");
 
   return okResult(selectedContext, {
     selectedContext,
     actOutput: selectedContext,
   });
+};
+
+const retrieveMemory: StepExecutor = (
+  _state: Readonly<GraphState>,
+  step: Step
+): StepExecutionResult => {
+  const payload = readStepPayload(step);
+  const topK = payload.topK;
+  if (typeof topK !== "number" || !Number.isFinite(topK) || topK < 0) {
+    return errorResult("RetrieveMemory payload.topK must be a non-negative number");
+  }
+
+  const items: Array<{ id: string; summary: string; timestamp: number | string }> = [];
+  return okResult({ items: items.slice(0, Math.floor(topK)) });
+};
+
+const retrieveDecisionContext: StepExecutor = (): StepExecutionResult => {
+  return errorResult("NOT_IMPLEMENTED_PRD005");
 };
 
 const promptAssemble: StepExecutor = (
@@ -120,27 +146,6 @@ const promptAssemble: StepExecutor = (
     assembledPrompt,
     actOutput: assembledPrompt,
   });
-};
-
-const retrieveMemory: StepExecutor = (
-  _state: Readonly<GraphState>,
-  step: Step
-): StepExecutionResult => {
-  const payload = readStepPayload(step);
-  const topK = payload.topK;
-  if (typeof topK !== "number" || !Number.isFinite(topK) || topK < 0) {
-    return {
-      kind: "error",
-      error: {
-        message: "RetrieveMemory payload.topK must be a non-negative number",
-      },
-    };
-  }
-
-  const items: Array<{ id: string; summary: string; timestamp: number | string }> = [];
-  const boundedItems = items.slice(0, Math.floor(topK));
-
-  return okResult({ items: boundedItems }, { actOutput: { items: boundedItems } });
 };
 
 const llmCall: StepExecutor = async (
@@ -166,29 +171,10 @@ const summarizeMemory: StepExecutor = (
     typeof payload.response === "string" && payload.response.trim() !== ""
       ? payload.response
       : state.lastResponse ?? "";
-  const normalized = response.trim();
-  const summary = normalized === "" ? "" : normalized.slice(0, 256);
-  const keywords = Array.from(
-    new Set(
-      summary
-        .split(/\s+/)
-        .map((item) => item.trim().toLowerCase())
-        .filter((item) => item.length > 0)
-    )
-  ).slice(0, 16);
+  const summary = response.trim();
+  const keywords = summary === "" ? [] : summary.split(/\s+/).slice(0, 16);
 
-  return okResult(
-    {
-      summary,
-      keywords,
-    },
-    {
-      actOutput: {
-        summary,
-        keywords,
-      },
-    }
-  );
+  return okResult({ summary, keywords }, { actOutput: { summary, keywords } });
 };
 
 const memoryWrite: StepExecutor = async (
@@ -208,34 +194,34 @@ const memoryWrite: StepExecutor = async (
   });
 };
 
-const persistSession: StepExecutor = (
-  state: Readonly<GraphState>
-): StepExecutionResult => {
-  const status = "persisted";
-  return okResult(
-    {
-      status,
-    },
-    {
-      actOutput: {
-        status,
-        sessionRef:
-          typeof (state.policyRef as { sessionRef?: unknown }).sessionRef === "string"
-            ? (state.policyRef as { sessionRef: string }).sessionRef
-            : undefined,
-      },
-    }
-  );
+const persistDecision: StepExecutor = (): StepExecutionResult => {
+  return errorResult("NOT_IMPLEMENTED_PRD005");
+};
+
+const persistEvidence: StepExecutor = (): StepExecutionResult => {
+  return errorResult("NOT_IMPLEMENTED_PRD005");
+};
+
+const linkDecisionEvidence: StepExecutor = (): StepExecutionResult => {
+  return errorResult("NOT_IMPLEMENTED_PRD005");
+};
+
+const persistSession: StepExecutor = (): StepExecutionResult => {
+  return okResult({ status: "persisted" });
 };
 
 export const coreStepExecutors: Readonly<Record<string, StepExecutor>> = {
   RepoScan: loadDocsForMode,
   ContextSelect: contextSelect,
   RetrieveMemory: retrieveMemory,
+  RetrieveDecisionContext: retrieveDecisionContext,
   PromptAssemble: promptAssemble,
   LLMCall: llmCall,
   SummarizeMemory: summarizeMemory,
   PersistMemory: memoryWrite,
+  PersistDecision: persistDecision,
+  PersistEvidence: persistEvidence,
+  LinkDecisionEvidence: linkDecisionEvidence,
   PersistSession: persistSession,
   LoadDocsForMode: loadDocsForMode,
   MemoryWrite: memoryWrite,
