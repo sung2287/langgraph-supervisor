@@ -11,6 +11,62 @@ import path from "node:path";
 import { PolicyInterpreter } from "../../src/policy/interpreter/policy.interpreter";
 import { ConfigurationError } from "../../src/policy/interpreter/policy.errors";
 import { toCoreExecutionPlan } from "../../runtime/graph/graph";
+import { executePlan } from "../../src/core/plan/plan.executor";
+import { coreStepExecutors } from "../../src/core/plan/plan.handlers";
+import { createStepExecutorRegistry } from "../../src/core/plan/step.registry";
+import type {
+  ExecutionPlanV1,
+  GraphState,
+  PlanExecutorDeps,
+} from "../../src/core/plan/plan.types";
+
+class NoopMemoryRepo {
+  async write(): Promise<void> {
+    return;
+  }
+}
+
+function makeDeps(): PlanExecutorDeps {
+  return {
+    llmClient: {
+      async generate(prompt: string): Promise<string> {
+        return `LLM:${prompt}`;
+      },
+    },
+    memoryRepo: new NoopMemoryRepo(),
+    persistSession: async () => ({ persisted: true }),
+  };
+}
+
+function makeState(plan: ExecutionPlanV1): GraphState {
+  return {
+    userInput: "hello",
+    executionPlan: plan,
+    policyRef: Object.freeze({ policyId: "policy-default" }),
+    projectId: "test-project",
+    currentMode: "default",
+    currentDomain: undefined,
+    loadedDocs: undefined,
+    selectedContext: undefined,
+    assembledPrompt: undefined,
+    actOutput: undefined,
+    stepResults: undefined,
+    stepUnavailableReasons: undefined,
+    repoScanVersion: undefined,
+    repoContextArtifactPath: undefined,
+    repoContextUnavailableReason: undefined,
+    lastResponse: undefined,
+    stepLog: [],
+  };
+}
+
+function makeRegistry() {
+  const registry = createStepExecutorRegistry();
+  for (const [kind, executor] of Object.entries(coreStepExecutors)) {
+    registry.register(kind, executor);
+  }
+  return registry;
+}
 
 function makeTempRepo(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "policy-interpreter-"));
@@ -104,6 +160,7 @@ test("policy interpreter: representative mode normalization stays stable (snapsh
 
   assert.deepEqual(plan, {
     step_contract_version: "1",
+    extensions: [],
     metadata: {
       policyProfile: "default",
       mode: "default",
@@ -117,6 +174,26 @@ test("policy interpreter: representative mode normalization stays stable (snapsh
       { id: "step-5", type: "PersistSession", payload: {} },
     ],
   });
+});
+
+test("policy interpreter: extensions are enumerable and survive JSON round-trip for executor gate", async () => {
+  const interpreter = new PolicyInterpreter({
+    repoRoot: process.cwd(),
+    profile: "default",
+  });
+
+  const plan = interpreter.resolveExecutionPlan({ userInput: "hello world" });
+  const serialized = JSON.stringify(plan);
+  assert.equal(serialized.includes("\"extensions\":[]"), true);
+
+  const parsed = JSON.parse(serialized) as ReturnType<PolicyInterpreter["resolveExecutionPlan"]>;
+  assert.equal(Array.isArray(parsed.extensions), true);
+  assert.equal(parsed.extensions.length, 0);
+
+  const corePlan = toCoreExecutionPlan(parsed);
+  await assert.doesNotReject(() =>
+    executePlan(corePlan as ExecutionPlanV1, makeState(corePlan as ExecutionPlanV1), makeDeps(), makeRegistry())
+  );
 });
 
 test("policy interpreter: re: condition selects mode and emits normalized step types", () => {

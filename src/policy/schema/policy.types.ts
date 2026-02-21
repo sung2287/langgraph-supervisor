@@ -30,6 +30,7 @@ export interface NormalizedStep {
 
 export interface NormalizedExecutionPlan {
   step_contract_version: "1" | "1.1";
+  extensions: readonly [];
   metadata: {
     policyProfile: string;
     mode: string;

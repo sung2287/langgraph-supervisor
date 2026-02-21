@@ -76,6 +76,9 @@ const LEGACY_STEP_TO_CANONICAL: Readonly<Record<string, StepType>> = Object.free
   persist_evidence: "PersistEvidence",
   LinkDecisionEvidence: "LinkDecisionEvidence",
   link_decision_evidence: "LinkDecisionEvidence",
+  persistAnchor: "persistAnchor",
+  persist_anchor: "persistAnchor",
+  PersistAnchor: "persistAnchor",
   PersistSession: "PersistSession",
   persist_session: "PersistSession",
 });
@@ -85,6 +88,7 @@ const V11_ONLY_STEP_TYPES = new Set<StepType>([
   "PersistDecision",
   "PersistEvidence",
   "LinkDecisionEvidence",
+  "persistAnchor",
 ]);
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -219,6 +223,7 @@ export class PolicyInterpreter {
 
     const plan: NormalizedExecutionPlan = {
       step_contract_version: stepContractVersion,
+      extensions: Object.freeze([]) as readonly [],
       steps: normalizedSteps,
       metadata: {
         mode: mode.id,
