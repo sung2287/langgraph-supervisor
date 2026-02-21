@@ -8,15 +8,17 @@ import assert from "node:assert/strict";
 import { executePlan } from "../../src/core/plan/plan.executor";
 import { coreStepExecutors } from "../../src/core/plan/plan.handlers";
 import { createStepExecutorRegistry } from "../../src/core/plan/step.registry";
+import { toCoreExecutionPlan } from "../../runtime/graph/graph";
 import type {
   ExecutionPlanV1,
   GraphState,
   PlanExecutorDeps,
-  PolicyRef,
   StepDefinition,
 } from "../../src/core/plan/plan.types";
 import { CycleFailError, FailFastError } from "../../src/core/plan/errors";
 import type { StepExecutor } from "../../src/core/plan/step.registry";
+import type { ExecutionPlan as PolicyExecutionPlan } from "../../src/policy/schema/policy.types";
+import { isExecutionPlanV1 as isCorePlanV1 } from "../../src/core/plan/plan.types";
 
 class NoopMemoryRepo {
   async write(): Promise<void> {
@@ -266,3 +268,51 @@ test("v1.1: duplicate StepType and duplicate id are CycleFail", async () => {
   );
 });
 
+test("runtime normalization: emit step_contract_version=1 for legacy-only steps", () => {
+  const policyPlan: PolicyExecutionPlan = {
+    version: "1.0",
+    steps: [
+      { type: "recall", params: {} },
+      { type: "assemble_prompt", params: {} },
+      { type: "llm_call", params: {} },
+      { type: "memory_write", params: {} },
+    ],
+    metadata: {
+      policyId: "policy-alpha",
+      modeLabel: "default",
+    },
+  };
+
+  const corePlan = toCoreExecutionPlan(policyPlan);
+  assert.equal(isCorePlanV1(corePlan), true);
+  if (!isCorePlanV1(corePlan)) {
+    assert.fail("expected v1 plan");
+  }
+  assert.equal(corePlan.step_contract_version, "1");
+  assert.deepEqual(corePlan.extensions, []);
+});
+
+test("runtime normalization: emit step_contract_version=1.1 when v1.1 step exists", () => {
+  const policyPlan: PolicyExecutionPlan = {
+    version: "1.0",
+    steps: [
+      { type: "recall", params: {} },
+      { type: "RetrieveDecisionContext", params: { input: "hello" } },
+      { type: "assemble_prompt", params: {} },
+      { type: "llm_call", params: {} },
+      { type: "memory_write", params: {} },
+    ],
+    metadata: {
+      policyId: "policy-alpha",
+      modeLabel: "default",
+    },
+  };
+
+  const corePlan = toCoreExecutionPlan(policyPlan);
+  assert.equal(isCorePlanV1(corePlan), true);
+  if (!isCorePlanV1(corePlan)) {
+    assert.fail("expected v1 plan");
+  }
+  assert.equal(corePlan.step_contract_version, "1.1");
+  assert.deepEqual(corePlan.extensions, []);
+});

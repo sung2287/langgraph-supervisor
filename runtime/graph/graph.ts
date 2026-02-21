@@ -85,6 +85,13 @@ const POLICY_TO_STEP_TYPE: Readonly<Record<string, StepType>> = Object.freeze({
   persist_session: "PersistSession",
 });
 
+const V11_ONLY_STEP_TYPES = new Set<StepType>([
+  "RetrieveDecisionContext",
+  "PersistDecision",
+  "PersistEvidence",
+  "LinkDecisionEvidence",
+]);
+
 function mapPolicyStepType(rawType: string): StepType {
   const normalized = rawType.trim();
   const mapped = POLICY_TO_STEP_TYPE[normalized];
@@ -129,9 +136,12 @@ export function toCoreExecutionPlan(plan: PolicyExecutionPlan): CoreExecutionPla
   const retrieveMemoryStep = normalizedSteps.find((step) => step.type === "RetrieveMemory");
   const retrievePayload = retrieveMemoryStep ? asRecord(retrieveMemoryStep.payload) : {};
   const topKCandidate = retrievePayload.topK;
+  const stepContractVersion = normalizedSteps.some((step) => V11_ONLY_STEP_TYPES.has(step.type))
+    ? "1.1"
+    : "1";
 
   return {
-    step_contract_version: "1.1",
+    step_contract_version: stepContractVersion,
     extensions: [],
     metadata: {
       topK:
@@ -180,7 +190,7 @@ export async function runGraph(
   deps: GraphDeps
 ): Promise<GraphState> {
   const app = buildGraph(deps);
-  const initialState: GraphState = {
+  const initialState = {
     userInput: input.userInput,
     executionPlan: input.executionPlan,
     policyRef: input.policyRef,
