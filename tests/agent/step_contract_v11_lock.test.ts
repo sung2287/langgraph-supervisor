@@ -270,6 +270,23 @@ test("v1.1: duplicate StepType and duplicate id are CycleFail", async () => {
   );
 });
 
+test("v1.1: SetDomain alias is accepted by step type validation and executes", async () => {
+  const plan = makePlan({
+    version: "1.1",
+    steps: [
+      { id: "s0", type: "SetDomain", payload: { currentDomain: "coding" } },
+      { id: "s1", type: "ContextSelect", payload: { input: "hello", sources: [] } },
+      { id: "s2", type: "PromptAssemble", payload: {} },
+      { id: "s3", type: "LLMCall", payload: {} },
+      { id: "s4", type: "PersistSession", payload: { sessionRef: "s", meta: {} } },
+    ],
+  });
+
+  const result = await executePlan(plan, makeState(plan), makeDeps(), createRegistry());
+  assert.equal(result.currentDomain, "coding");
+  assert.equal(result.stepLog.includes("s0"), true);
+});
+
 test("runtime normalization: emit step_contract_version=1 for legacy-only steps", () => {
   const policyPlan: NormalizedExecutionPlan = {
     step_contract_version: "1",

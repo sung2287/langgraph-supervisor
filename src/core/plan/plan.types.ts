@@ -2,6 +2,9 @@ import type { AnchorPort } from "../anchor/anchor.types";
 
 export type StepType =
   | "RepoScan"
+  | "setDomain"
+  | "set_domain"
+  | "SetDomain"
   | "ContextSelect"
   | "RetrieveMemory"
   | "RetrieveDecisionContext"
@@ -16,6 +19,9 @@ export type StepType =
 
 export const STEP_TYPES = Object.freeze([
   "RepoScan",
+  "setDomain",
+  "set_domain",
+  "SetDomain",
   "ContextSelect",
   "RetrieveMemory",
   "RetrieveDecisionContext",
