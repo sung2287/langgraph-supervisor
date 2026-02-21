@@ -16,6 +16,11 @@
 - **`policy/profiles/**`**:
     - 각 정책 프로필별 기본 `provider`, `model` 설정값 정의.
 
+v1 Implementation Note:
+- ProviderRouter supports explicit selection.
+- GeminiAdapter is the only newly integrated external provider in v1.
+- OpenAIAdapter and LocalLLMClient remain unchanged.
+
 ## 2. Dependency Rules (의존성 규칙)
 레이어 간의 결합도를 낮추고 Core의 중립성을 보호하기 위해 다음 규칙을 강제한다.
 
@@ -37,6 +42,8 @@
     - `LLM_MODEL`: 해당 공급자 내의 구체적인 모델명.
     - `LLM_TIMEOUT_MS`: API 호출 제한 시간 (Default: `30000`).
 - **Priority Logic**:
+    - v1 configuration sources: CLI + ENV only.
+    - Policy profile defaults: reserved for follow-up PRD (not wired in v1).
     - **CLI Flag** (`--provider`)가 존재할 경우 환경 변수 설정을 항상 무시(Override)한다.
     - 명시적인 설정이 전혀 없을 경우 시작 단계에서 실행을 거부한다.
 
@@ -45,6 +52,7 @@
 - CLI argument parsing
 - Provider resolution
 - Adapter initialization
+- "Policy profile default resolution" is NOT part of v1 bootstrap (reserved).
 
 No executionPlan construction may occur before bootstrap completes successfully.
 

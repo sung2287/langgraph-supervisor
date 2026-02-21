@@ -16,6 +16,7 @@
 - **Trigger**: 런타임 시작(Boot) 시점의 CLI 인자, 환경 변수, 정책 프로필 로드.
 - **Decision Flow**: 
     - **Deterministic Resolution**: 사전에 정의된 우선순위(CLI > ENV > Policy)에 따라 결정하며, 시스템이 임의로 공급자를 추측하거나 선택하지 않는다.
+    - v1 selection sources are CLI/ENV only; Policy-based defaults are deferred.
 - **Goal**: 실행 전 추론 엔진의 가용성을 확정하고, 유효하지 않은 설정일 경우 즉시 차단하여 불확실한 실행을 방지한다.
 
 ## 3. Intent: Failure Handling (오류 처리 및 복구)

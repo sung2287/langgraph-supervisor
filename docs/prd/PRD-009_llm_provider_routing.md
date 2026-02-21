@@ -47,6 +47,17 @@
 - **No Implicit Fallback (LOCK)**: 
     - 공급자가 명시적으로 결정되지 않을 경우(CLI/ENV/Policy 모두 부재), 런타임은 시작 시 설정 오류(Configuration Error)를 발생시켜야 한다.
     - 로컬 공급자(Ollama)로의 Fallback은 명시적으로 선언된 경우에만 허용된다.
+### Implementation Scope (v1)
+- v1 introduces explicit provider routing.
+- Newly integrated provider: Gemini.
+- Existing adapters (Ollama, OpenAI) remain operational but are not refactored in v1.
+- Multi-provider expansion remains supported by design but not implemented beyond Gemini in v1.
+
+### Implementation Note (v1)
+- v1 resolves provider/model using CLI/ENV only.
+- Policy Profile Default (provider/model) is deferred to a follow-up PRD.
+- Routing priority remains the long-term contract (CLI > ENV > Policy), but Policy source is not active in v1.
+
 - **Explicit Only**: Router는 공급자를 "추측"하여 변경하지 않으며, 설정된 경로가 유효하지 않을 경우 즉시 에러를 반환한다.
 
 ### 3.3 Failure Semantics (LOCK)
@@ -56,8 +67,10 @@
     - **Permanent (즉시 실패)**: 401/403(Auth Error), 400(Invalid Request) → 즉시 `CycleFail`.
     - **Timeout**: 설정된 `timeoutMs` 초과 시 `CycleFail`.
 - **Default Retry Policy**:
-    - `defaultRetryCount`: 2
-    - `retryBackoffMs`: 500ms exponential (예: 500ms, 1000ms)
+    - `maxAttempts`: 3 (initial attempt + 2 retries)
+    - `Backoff schedule`:
+      - attempt 2 → 500ms delay
+      - attempt 3 → 1000ms delay
     - `defaultTimeoutMs`: 30000ms (30s)
     - 이 값들은 설정을 통해 덮어쓸 수 있으나, 런타임 설정에 명시적으로 정의되어야 한다.
 
@@ -108,8 +121,8 @@
 ---
 
 ## 7. Decisions Needed (결정 사항)
-- **Policy Default**: 개별 정책 프로필(policy profile) 내부에 특정 모델명(예: `gemini-1.5-flash`)까지 명시하는 것을 허용할 것인가?
-- **CLI Flag Priority**: 실행 시 전달된 Flag가 ENV 설정을 항상 덮어쓰도록 강제할 것인가? (현재 요구사항은 1순위로 설정됨)
+- **Policy Default**: DECIDED: DEFERRED (v2) - 개별 정책 프로필 내 모델 명시는 v2에서 지원한다.
+- **CLI Flag Priority**: DECIDED: YES - CLI Flag가 ENV 설정을 항상 덮어쓴다.
 
 ---
 

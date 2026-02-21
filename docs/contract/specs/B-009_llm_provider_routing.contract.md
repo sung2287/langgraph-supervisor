@@ -18,10 +18,15 @@ Core Engine은 외부 LLM 공급자의 상세 구현을 알지 못하며, 오직
   - 에러 객체는 어떠한 경우에도 SDK의 원시 스택 트레이스(stack trace)를 포함해서는 안 된다.
 - **Async Execution**: 모든 호출은 비동기(`Promise`)로 처리되며, 타임아웃은 어댑터 레벨에서 관리한다.
 
+v1 Implementation Scope:
+- Contract applies to all providers.
+- Initial adapter implementation under this PRD is limited to Gemini.
+
 ## 2. Router Contract (Selection Logic)
 공급자 인스턴스를 결정하는 로직은 다음의 엄격한 우선순위를 따른다며, 결정에 실패할 경우 런타임 시작 단계에서 차단한다.
 
 - **Resolution Priority**:
+    - Note: v1 implementation uses only CLI/ENV as config sources. Policy default source is not active in v1.
     1. **CLI Flag**: `--provider` 인자 명시 시 최우선 적용.
     2. **Environment Variable**: `LLM_PROVIDER` 변수 값 참조.
     3. **Policy Profile Default**: 정책 프로필에 기본 공급자가 정의된 경우.
