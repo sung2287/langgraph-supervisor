@@ -6,14 +6,14 @@
 - state_version: 2
 - last_updated: 2026-02-21
 - updated_by: human
-- update_reason: close prd-009
-- latest_delta_id: 20260221_121837_f3c5028e
+- update_reason: close prd-008
+- latest_delta_id: 20260221_131851_5c613a08
 - git_base: origin/main
-- git_merge_base: 51b72c4b698bb064cb65167827de82faadb02c44
-- git_head: 4cd4ca8a383b7f8eb4d0e59888c1e389e0948208
-- git_head_short: 4cd4ca8
-- git_branch: prd-009-impl-explicit-provider-gemini
-- changed_files_sha256: a016b7f05d181c7fa084e4c642bc3e97c11edddbefd8ddade5bb659d1fffd6c7
+- git_merge_base: d486b748a79ee8550f4f900ad6007a5baf9885a6
+- git_head: d486b748a79ee8550f4f900ad6007a5baf9885a6
+- git_head_short: d486b74
+- git_branch: main
+- changed_files_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 - typecheck_exit_code: 0
 - test_exit_code: 0
 
@@ -39,7 +39,7 @@
 - naming_rule: ABCD File Naming (LOCKED)
 
 ## Current Scope (Approved/Done)
-- prd_done: [PRD-002, PRD-001, PRD-003, PRD-004, PRD-007, prd-006, prd-005, prd-009]
+- prd_done: [PRD-002, PRD-001, PRD-003, PRD-004, PRD-007, prd-006, prd-005, prd-009, prd-008]
 - core_promoted:
   - PRD-001 (Create)
 - core_status: Partial; non-TOC core files removed during cleanup, recovery in progress
