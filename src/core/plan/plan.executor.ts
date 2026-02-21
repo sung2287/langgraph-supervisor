@@ -30,7 +30,13 @@ const FAIL_FAST_STEP_TYPES = new Set<StepType>([
   "PersistSession",
 ]);
 
-const LEGACY_FAIL_FAST_STEP_KINDS = new Set(["MemoryWrite", "memory_write"]);
+const LEGACY_FAIL_FAST_STEP_KINDS = new Set([
+  "MemoryWrite",
+  "memory_write",
+  "persistAnchor",
+  "persist_anchor",
+  "PersistAnchor",
+]);
 const MEMORY_WRITE_STEP_TYPES = new Set<StepType>(["PersistMemory"]);
 const LEGACY_MEMORY_WRITE_STEP_KINDS = new Set(["MemoryWrite", "memory_write", "PersistMemory"]);
 

@@ -1,3 +1,5 @@
+import type { AnchorPort } from "../anchor/anchor.types";
+
 export type StepType =
   | "RepoScan"
   | "ContextSelect"
@@ -131,6 +133,9 @@ export interface PromptAssemblyInput {
 export interface PlanExecutorDeps {
   readonly llmClient: LLMClientPort;
   readonly memoryRepo: MemoryRepositoryPort;
+  readonly anchorPort?: AnchorPort;
+  readonly decisionExists?: (decisionId: string) => Promise<boolean> | boolean;
+  readonly evidenceExists?: (evidenceId: string) => Promise<boolean> | boolean;
   readonly retrieveDecisionContext?: (input: {
     readonly input: string;
     readonly currentDomain?: string;

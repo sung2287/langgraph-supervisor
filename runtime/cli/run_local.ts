@@ -29,6 +29,7 @@ const {
   input,
   repoPath,
   phase,
+  currentDomain,
   profile,
   freshSession,
   session,
@@ -103,6 +104,7 @@ try {
           policyRef,
           projectId: repoPath,
           currentMode: resolvedPlan.metadata.mode,
+          currentDomain,
         },
         {
           planExecutorDeps: createRuntimePlanExecutorDeps({

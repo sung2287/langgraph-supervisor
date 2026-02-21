@@ -54,6 +54,8 @@ function listMarkerDecisionIds(
   layer: ReturnType<typeof createSQLiteStorageLayer>,
   marker: string
 ): readonly string[] {
+  // Temporary test/smoke-only direct SQL path.
+  // PRD-006 Anchor Persistence Boundary applies to production runtime handlers via AnchorPort.
   const rows = layer.storage.query<{ target_ref: unknown }>(
     `
     SELECT target_ref
@@ -148,6 +150,8 @@ function runSmoke(): void {
       scope: "global",
       isActive: true,
     });
+    // Temporary test/smoke-only direct adapter call.
+    // Production persistence path must use handler + PlanExecutorDeps AnchorPort boundary.
     layer.anchorStore.insertAnchor({
       id: randomUUID(),
       hint: marker,

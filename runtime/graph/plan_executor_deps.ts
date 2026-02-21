@@ -4,6 +4,7 @@ import {
   type DecisionStrength,
   type SQLiteStorageLayer,
 } from "../../src/adapter/storage/sqlite";
+import type { AnchorType } from "../../src/core/anchor/anchor.types";
 import { retrieveDecisionContextHierarchically } from "../../src/core/decision/decision_context.service";
 import type { SessionState, SessionStore } from "../../src/session/session.types";
 
@@ -66,12 +67,46 @@ function normalizeEvidenceTags(value: unknown): string | undefined {
   throw new Error("evidence.tags must be string or array");
 }
 
+function normalizeAnchorType(value: unknown): AnchorType {
+  const normalized = requireString(value, "anchor.type");
+  if (normalized === "evidence_link" || normalized === "decision_link") {
+    return normalized;
+  }
+  throw new Error(`anchor.type unsupported value '${normalized}'`);
+}
+
 export function createRuntimePlanExecutorDeps(
   options: RuntimePlanExecutorDepsOptions
 ): PlanExecutorDeps {
   return {
     llmClient: options.llmClient,
     memoryRepo: options.memoryRepo,
+    anchorPort: {
+      insertAnchor: (input) => {
+        options.storageLayer.anchorStore.insertAnchor({
+          id: requireString(input.id, "anchor.id"),
+          hint: requireString(input.hint, "anchor.hint", true),
+          targetRef: requireString(input.targetRef, "anchor.targetRef"),
+          type: normalizeAnchorType(input.type),
+        });
+      },
+    },
+    decisionExists: (decisionId) => {
+      const row =
+        options.storageLayer.storage.query<Record<string, unknown>>(
+          "SELECT COUNT(*) AS c FROM decisions WHERE id = ?",
+          [requireString(decisionId, "decisionId")]
+        )[0] ?? {};
+      return Number(row.c ?? 0) > 0;
+    },
+    evidenceExists: (evidenceId) => {
+      const row =
+        options.storageLayer.storage.query<Record<string, unknown>>(
+          "SELECT COUNT(*) AS c FROM evidences WHERE id = ?",
+          [requireString(evidenceId, "evidenceId")]
+        )[0] ?? {};
+      return Number(row.c ?? 0) > 0;
+    },
     retrieveDecisionContext: ({ currentDomain }) =>
       retrieveDecisionContextHierarchically(options.storageLayer.decisionStore, {
         currentDomain,

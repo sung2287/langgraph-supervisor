@@ -4,6 +4,7 @@ export interface RunLocalArgs {
   repoPath: string;
   profile: string;
   phase: string;
+  currentDomain?: string;
   freshSession: boolean;
   session?: string;
   provider?: string;
@@ -30,6 +31,7 @@ export function parseRunLocalArgs(argv: string[]): RunLocalArgs {
   let repoPathFromFlag: string | undefined;
   let profileFromFlag: string | undefined;
   let phaseFromFlag: string | undefined;
+  let currentDomainFromFlag: string | undefined;
   let freshSessionFromFlag = false;
   let sessionFromFlag: string | undefined;
   let providerFromFlag: string | undefined;
@@ -62,6 +64,14 @@ export function parseRunLocalArgs(argv: string[]): RunLocalArgs {
       const next = argv[i + 1];
       if (typeof next === "string" && next.trim() !== "") {
         phaseFromFlag = next.trim();
+        i += 1;
+        continue;
+      }
+    }
+    if (token === "--domain" || token === "--current-domain") {
+      const next = argv[i + 1];
+      if (typeof next === "string" && next.trim() !== "") {
+        currentDomainFromFlag = next.trim();
         i += 1;
         continue;
       }
@@ -131,6 +141,7 @@ export function parseRunLocalArgs(argv: string[]): RunLocalArgs {
     repoPath,
     profile,
     phase,
+    currentDomain: currentDomainFromFlag,
     freshSession: freshSessionFromFlag,
     session: sessionFromFlag,
     provider: providerFromFlag,
