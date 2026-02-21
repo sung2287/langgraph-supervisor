@@ -14,7 +14,7 @@ export interface RunSessionLifecycleInput<TResult> {
   ) => Promise<SessionLifecycleRunResult<TResult>>;
 }
 
-export function shouldVerifyOnBoot(loaded: SessionState | null): boolean {
+export function shouldVerifyOnBoot(loaded: SessionState | null): loaded is SessionState {
   return loaded !== null;
 }
 

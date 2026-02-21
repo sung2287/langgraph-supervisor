@@ -1,13 +1,80 @@
-export interface Step {
+export type StepType =
+  | "RepoScan"
+  | "ContextSelect"
+  | "RetrieveMemory"
+  | "RetrieveDecisionContext"
+  | "PromptAssemble"
+  | "LLMCall"
+  | "SummarizeMemory"
+  | "PersistMemory"
+  | "PersistDecision"
+  | "PersistEvidence"
+  | "LinkDecisionEvidence"
+  | "PersistSession";
+
+export const STEP_TYPES = Object.freeze([
+  "RepoScan",
+  "ContextSelect",
+  "RetrieveMemory",
+  "RetrieveDecisionContext",
+  "PromptAssemble",
+  "LLMCall",
+  "SummarizeMemory",
+  "PersistMemory",
+  "PersistDecision",
+  "PersistEvidence",
+  "LinkDecisionEvidence",
+  "PersistSession",
+] as const satisfies readonly StepType[]);
+
+export const STEP_TYPES_CANONICAL_ORDER = STEP_TYPES;
+
+export const MANDATORY_STEP_TYPES = Object.freeze([
+  "ContextSelect",
+  "PromptAssemble",
+  "LLMCall",
+  "PersistSession",
+] as const satisfies readonly StepType[]);
+
+export interface PlanMetadata {
+  readonly topK?: number;
+  readonly timeouts?: {
+    readonly llmMs?: number;
+    readonly ioMs?: number;
+  };
+  readonly budgets?: {
+    readonly promptTokens?: number;
+  };
+  readonly policyProfile: string;
+  readonly mode: string;
+}
+
+export interface StepDefinition {
+  readonly id: string;
+  readonly type: StepType;
+  readonly payload: unknown;
+}
+
+export interface ExecutionPlanV1 {
+  readonly step_contract_version: "1" | "1.1";
+  readonly extensions: readonly [];
+  readonly metadata: PlanMetadata;
+  readonly steps: readonly StepDefinition[];
+}
+
+export interface LegacyStep {
   readonly kind?: string;
   readonly type?: string;
   readonly params?: Readonly<Record<string, unknown>>;
 }
 
-export interface ExecutionPlan {
+export interface LegacyExecutionPlan {
   readonly version: string;
-  readonly steps: readonly Step[];
+  readonly steps: readonly LegacyStep[];
 }
+
+export type ExecutionPlan = ExecutionPlanV1 | LegacyExecutionPlan;
+export type Step = StepDefinition | LegacyStep;
 
 export type PolicyRef = Readonly<Record<string, unknown>>;
 
@@ -71,7 +138,16 @@ export interface PlanExecutorDeps {
   readonly assemblePrompt?: (input: PromptAssemblyInput) => string;
 }
 
+export function isExecutionPlanV1(plan: ExecutionPlan): plan is ExecutionPlanV1 {
+  return (
+    typeof (plan as { step_contract_version?: unknown }).step_contract_version === "string"
+  );
+}
+
 export function resolveStepKind(step: Step): string {
+  if ("id" in step && "payload" in step && typeof step.type === "string") {
+    return step.type;
+  }
   if (typeof step.kind === "string" && step.kind.trim() !== "") {
     return step.kind;
   }

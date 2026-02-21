@@ -46,7 +46,8 @@ function asBoolean(value: unknown, fallback: boolean): boolean {
 }
 
 function readConfig(step: Step): RepoContextConfig {
-  const params = asRecord(step.params);
+  const params =
+    "payload" in step ? asRecord(step.payload) : asRecord(step.params);
   return {
     storagePath: asString(params.storagePath, SCAN_RESULT_REL_PATH),
     freshnessMs: asNumber(params.freshnessMs, 600000),

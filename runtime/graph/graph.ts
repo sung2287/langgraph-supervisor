@@ -5,7 +5,8 @@ import type {
   GraphState as CoreGraphState,
   PlanExecutorDeps,
   PolicyRef,
-  Step as CoreStep,
+  StepDefinition,
+  StepType,
 } from "../../src/core/plan/plan.types";
 import type { StepExecutorRegistry } from "../../src/core/plan/step.registry";
 import type {
@@ -45,35 +46,102 @@ export const GraphStateAnnotation = Annotation.Root({
   stepLog: Annotation<string[]>,
 });
 
-function normalizePolicyStep(step: PolicyExecutionStep): CoreStep {
+function asRecord(value: unknown): Record<string, unknown> {
+  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return {};
+}
+
+const POLICY_TO_STEP_TYPE: Readonly<Record<string, StepType>> = Object.freeze({
+  RepoScan: "RepoScan",
+  repo_scan: "RepoScan",
+  repo_context: "RepoScan",
+  LoadDocsForMode: "RepoScan",
+  ContextSelect: "ContextSelect",
+  context_select: "ContextSelect",
+  RetrieveMemory: "RetrieveMemory",
+  retrieve_memory: "RetrieveMemory",
+  recall: "RetrieveMemory",
+  RetrieveDecisionContext: "RetrieveDecisionContext",
+  retrieve_decision_context: "RetrieveDecisionContext",
+  PromptAssemble: "PromptAssemble",
+  assemble_prompt: "PromptAssemble",
+  LLMCall: "LLMCall",
+  llm_call: "LLMCall",
+  SummarizeMemory: "SummarizeMemory",
+  summarize_memory: "SummarizeMemory",
+  PersistMemory: "PersistMemory",
+  persist_memory: "PersistMemory",
+  MemoryWrite: "PersistMemory",
+  memory_write: "PersistMemory",
+  PersistDecision: "PersistDecision",
+  persist_decision: "PersistDecision",
+  PersistEvidence: "PersistEvidence",
+  persist_evidence: "PersistEvidence",
+  LinkDecisionEvidence: "LinkDecisionEvidence",
+  link_decision_evidence: "LinkDecisionEvidence",
+  PersistSession: "PersistSession",
+  persist_session: "PersistSession",
+});
+
+function mapPolicyStepType(rawType: string): StepType {
+  const normalized = rawType.trim();
+  const mapped = POLICY_TO_STEP_TYPE[normalized];
+  if (mapped) {
+    return mapped;
+  }
+  throw new Error(`PLAN_NORMALIZATION_ERROR unsupported step type '${normalized}'`);
+}
+
+function normalizePolicyStep(step: PolicyExecutionStep, idx: number): StepDefinition {
   const raw = step as Record<string, unknown>;
   const paramsRaw = raw.params;
-  const params =
+  const payload =
     typeof paramsRaw === "object" && paramsRaw !== null && !Array.isArray(paramsRaw)
       ? { ...(paramsRaw as Record<string, unknown>) }
       : {};
 
-  if (typeof raw.kind === "string" && raw.kind.trim() !== "") {
-    return {
-      kind: raw.kind,
-      params,
-    };
+  const rawKind =
+    typeof raw.kind === "string" && raw.kind.trim() !== ""
+      ? raw.kind
+      : typeof raw.type === "string" && raw.type.trim() !== ""
+        ? raw.type
+        : "";
+  if (rawKind === "") {
+    throw new Error("PLAN_NORMALIZATION_ERROR step requires non-empty kind or type");
   }
 
-  if (typeof raw.type === "string" && raw.type.trim() !== "") {
-    return {
-      kind: raw.type,
-      params,
-    };
-  }
-
-  throw new Error("PLAN_NORMALIZATION_ERROR step requires non-empty kind or type");
+  return {
+    id: typeof raw.id === "string" && raw.id.trim() !== "" ? raw.id : `step-${String(idx + 1)}`,
+    type: mapPolicyStepType(rawKind),
+    payload,
+  };
 }
 
 export function toCoreExecutionPlan(plan: PolicyExecutionPlan): CoreExecutionPlan {
+  const mode = plan.metadata.modeLabel;
+  if (typeof mode !== "string" || mode.trim() === "") {
+    throw new Error("PLAN_NORMALIZATION_ERROR metadata.modeLabel must be provided");
+  }
+
+  const normalizedSteps = plan.steps.map((step, idx) => normalizePolicyStep(step, idx));
+  const retrieveMemoryStep = normalizedSteps.find((step) => step.type === "RetrieveMemory");
+  const retrievePayload = retrieveMemoryStep ? asRecord(retrieveMemoryStep.payload) : {};
+  const topKCandidate = retrievePayload.topK;
+
   return {
-    version: plan.version,
-    steps: plan.steps.map((step) => normalizePolicyStep(step)),
+    step_contract_version: "1.1",
+    extensions: [],
+    metadata: {
+      topK:
+        typeof topKCandidate === "number" && Number.isFinite(topKCandidate)
+          ? topKCandidate
+          : undefined,
+      policyProfile: plan.metadata.policyId,
+      mode,
+    },
+    steps: normalizedSteps,
   };
 }
 

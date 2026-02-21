@@ -22,7 +22,9 @@ export function registerRepositoryPluginExecutors(
   registry: StepExecutorRegistry,
   options: RepoContextExecutorOptions
 ): StepExecutorRegistry {
-  registry.register("repo_context", createRepoContextExecutor(options));
+  const executor = createRepoContextExecutor(options);
+  registry.register("RepoScan", executor);
+  registry.register("repo_context", executor);
   return registry;
 }
 
