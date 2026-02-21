@@ -10,6 +10,8 @@
     "state:cycle": "node scripts/state_make_candidate.mjs --",
     "state:meaning": "node scripts/state_meaning_prompt.mjs",
     "state:promote": "node scripts/state_promote_candidate.mjs --",
+    "prd:004:smoke": "node --import tsx runtime/cli/prd004_smoke_persist.ts",
+    "prd:005:smoke": "node --import tsx runtime/cli/prd005_smoke.ts",
     "test": "node --import tsx --test $(find src tests -type f -name \"*.test.ts\" 2>/dev/null)",
     "ci:intent": "node scripts/ci/check-intent.mjs",
     "ci:static": "node scripts/ci/check-static-rules.mjs && node scripts/ci/check-error-code-literals.mjs",
