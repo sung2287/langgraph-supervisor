@@ -1,13 +1,15 @@
 {
   "_note": "DO NOT CHANGE delta_id. Fill human meaning only.",
-  "delta_id": "20260221_094148_8edf5ab1",
-  "one_liner": "Decision/Evidence engine with domain-scoped hierarchical retrieval and runtime-safe persistence is now production-ready.",
+  "delta_id": "20260221_121837_f3c5028e",
+  "one_liner": "PRD-009 완료 — CLI/ENV 기반 명시적 LLM provider 라우팅 + Gemini 어댑터/스모크 추가, 부트스트랩 ConfigurationError 및 CycleFail 유지",
   "context": [],
   "decisions": [],
   "not_decided": [],
   "rationale": [],
   "problems": [],
   "risks": [],
-  "next_actions": [],
+  "next_actions": [
+    "PRD-010(또는 후속)에서 LLM 응답 메타/usage 스키마 확장 여부 결정 및 Core 핸들러 대응 설계"
+  ],
   "definition_of_done": []
 }

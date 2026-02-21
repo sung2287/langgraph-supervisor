@@ -8,6 +8,10 @@ export interface RunLocalArgs {
   repoPath: string;
   profile: string;
   phase: RuntimePhase;
+  provider?: string;
+  model?: string;
+  timeoutMs?: number;
+  maxAttempts?: number;
 }
 
 function isRuntimePhase(value: string): value is RuntimePhase {
@@ -39,6 +43,10 @@ export function parseRunLocalArgs(argv: string[]): RunLocalArgs {
   let repoPathFromFlag: string | undefined;
   let profileFromFlag: string | undefined;
   let phaseFromFlag: string | undefined;
+  let providerFromFlag: string | undefined;
+  let modelFromFlag: string | undefined;
+  let timeoutMsFromFlag: number | undefined;
+  let maxAttemptsFromFlag: number | undefined;
 
   for (let i = 0; i < argv.length; i += 1) {
     const token = argv[i];
@@ -69,6 +77,44 @@ export function parseRunLocalArgs(argv: string[]): RunLocalArgs {
         continue;
       }
     }
+    if (token === "--provider") {
+      const next = argv[i + 1];
+      if (typeof next === "string" && next.trim() !== "") {
+        providerFromFlag = next.trim();
+        i += 1;
+        continue;
+      }
+    }
+    if (token === "--model") {
+      const next = argv[i + 1];
+      if (typeof next === "string" && next.trim() !== "") {
+        modelFromFlag = next.trim();
+        i += 1;
+        continue;
+      }
+    }
+    if (token === "--timeoutMs") {
+      const next = argv[i + 1];
+      if (typeof next === "string" && next.trim() !== "") {
+        const parsed = Number(next);
+        if (Number.isFinite(parsed)) {
+          timeoutMsFromFlag = parsed;
+          i += 1;
+          continue;
+        }
+      }
+    }
+    if (token === "--maxAttempts") {
+      const next = argv[i + 1];
+      if (typeof next === "string" && next.trim() !== "") {
+        const parsed = Number(next);
+        if (Number.isFinite(parsed)) {
+          maxAttemptsFromFlag = parsed;
+          i += 1;
+          continue;
+        }
+      }
+    }
     positional.push(token);
   }
 
@@ -78,5 +124,15 @@ export function parseRunLocalArgs(argv: string[]): RunLocalArgs {
   const profile = profileFromFlag ?? "default";
   const phase = normalizePhase(phaseFromFlag);
 
-  return { input, projectId, repoPath, profile, phase };
+  return {
+    input,
+    projectId,
+    repoPath,
+    profile,
+    phase,
+    provider: providerFromFlag,
+    model: modelFromFlag,
+    timeoutMs: timeoutMsFromFlag,
+    maxAttempts: maxAttemptsFromFlag,
+  };
 }
