@@ -290,6 +290,7 @@ test("v1.1: SetDomain alias is accepted by step type validation and executes", a
 test("runtime normalization: emit step_contract_version=1 for legacy-only steps", () => {
   const policyPlan: NormalizedExecutionPlan = {
     step_contract_version: "1",
+    extensions: [],
     steps: [
       { id: "step-1", type: "ContextSelect", payload: {} },
       { id: "step-2", type: "PromptAssemble", payload: {} },
@@ -316,6 +317,7 @@ test("runtime normalization: emit step_contract_version=1 for legacy-only steps"
 test("runtime normalization: emit step_contract_version=1.1 when v1.1 step exists", () => {
   const policyPlan: NormalizedExecutionPlan = {
     step_contract_version: "1.1",
+    extensions: [],
     steps: [
       { id: "step-1", type: "ContextSelect", payload: {} },
       { id: "step-2", type: "RetrieveDecisionContext", payload: { input: "hello" } },

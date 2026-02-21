@@ -15,6 +15,7 @@ export type StepType =
   | "PersistDecision"
   | "PersistEvidence"
   | "LinkDecisionEvidence"
+  | "persistAnchor"
   | "PersistSession";
 
 export const STEP_TYPES = Object.freeze([
@@ -32,6 +33,7 @@ export const STEP_TYPES = Object.freeze([
   "PersistDecision",
   "PersistEvidence",
   "LinkDecisionEvidence",
+  "persistAnchor",
   "PersistSession",
 ] as const satisfies readonly StepType[]);
 

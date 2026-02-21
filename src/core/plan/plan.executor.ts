@@ -27,6 +27,7 @@ const FAIL_FAST_STEP_TYPES = new Set<StepType>([
   "PersistDecision",
   "PersistEvidence",
   "LinkDecisionEvidence",
+  "persistAnchor",
   "PersistSession",
 ]);
 
