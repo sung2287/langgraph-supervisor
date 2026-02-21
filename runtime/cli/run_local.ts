@@ -100,6 +100,7 @@ try {
 } catch (error) {
   if (error instanceof CycleFailError) {
     console.error(`run:local cycle failed: ${error.message}`);
+    process.exitCode = 1;
   } else if (error instanceof FailFastError) {
     console.error(`run:local fail-fast: ${error.message}`);
     process.exitCode = 1;
