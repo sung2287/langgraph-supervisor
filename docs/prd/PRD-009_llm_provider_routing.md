@@ -110,6 +110,26 @@
     - 목적: API Key 유효성, 네트워크 도달성, 기본 응답 스키마 1회 확인.
 - **Secrets Management**: API Key는 절대 코드나 설정 파일에 하드코딩하지 않으며, `.env` 또는 시스템 환경 변수를 통해서만 주입받는다.
 
+### 5.x Secret Handling Policy (LOCK)
+- API keys must NEVER be hardcoded in:
+  - source code
+  - configuration files
+  - policy profiles
+  - test fixtures
+- External provider credentials must be injected exclusively via:
+  - system environment variables
+- Required variable names:
+  - `GEMINI_API_KEY`
+  - `OPENAI_API_KEY` (if used)
+- If required key is missing during bootstrap:
+  - `ConfigurationError` must be thrown
+  - Execution must abort before `executionPlan` construction
+- Secrets must not:
+  - be logged
+  - be persisted
+  - be stored in Result Ledger
+  - be included in error messages
+
 ---
 
 ## 6. Definition of Done (DoD)

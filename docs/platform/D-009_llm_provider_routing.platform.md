@@ -46,6 +46,10 @@ v1 Implementation Note:
     - Policy profile defaults: reserved for follow-up PRD (not wired in v1).
     - **CLI Flag** (`--provider`)가 존재할 경우 환경 변수 설정을 항상 무시(Override)한다.
     - 명시적인 설정이 전혀 없을 경우 시작 단계에서 실행을 거부한다.
+- **Secret Handling**:
+    - Secret resolution occurs strictly during bootstrap phase.
+    - Secrets must never cross adapter boundary into Core.
+    - Secrets must never enter persistent storage.
 
 ### Bootstrap Phase Definition
 - Environment resolution

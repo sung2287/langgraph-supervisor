@@ -16,7 +16,13 @@ Core Engine은 외부 LLM 공급자의 상세 구현을 알지 못하며, 오직
   ```
   - `providerCode`는 선택 사항이며 오직 관측성(observability)을 위해서만 사용된다.
   - 에러 객체는 어떠한 경우에도 SDK의 원시 스택 트레이스(stack trace)를 포함해서는 안 된다.
-- **Async Execution**: 모든 호출은 비동기(`Promise`)로 처리되며, 타임아웃은 어댑터 레벨에서 관리한다.
+- **Async Execution**: 모든 호출은 비동기(`Promise`)로 처리되며, 타임아웃은 어댑 터 레벨에서 관리한다.
+
+### Secret Handling Contract (LOCK)
+- Adapters must read credentials only from `process.env`.
+- SDK/API keys must not be embedded in source code.
+- Missing credentials must trigger `ConfigurationError` at bootstrap.
+- No raw secret value may appear in logs or error objects.
 
 v1 Implementation Scope:
 - Contract applies to all providers.
