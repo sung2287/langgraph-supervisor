@@ -5,6 +5,22 @@
 - **Unauthorized Step Prohibited**: PRD-007 v1.1에 명시된 12가지 Step 외의 사용을 금지한다.
 - **Modification Prohibited**: Step의 이름을 변경하거나 기존 필드를 임의로 삭제하는 행위를 금지한다. 변경 시 신규 버전 PRD가 필요하다.
 
+### persistAnchor Status (LOCK)
+
+- `persistAnchor` is an official strict v1.1 StepType.
+- It MUST be included in:
+  - StepType union
+  - strict allowlist (STEP_TYPES)
+  - Step registry
+- It MAY appear in executionPlan only when explicitly defined by policy.
+- It is NOT a legacy-only step.
+
+### Failure Semantics (LOCK)
+
+- `persistAnchor` is classified as a WRITE step.
+- Any referential integrity violation MUST trigger FailFast.
+- Storage remains passive; integrity validation occurs in handler/application layer.
+
 ## 2. Flat Model Enforcement
 
 - **Branching Prohibited**: `StepDefinition`에 `onSuccess`, `onFail`, `condition` 필드 추가를 엄격히 금지한다.

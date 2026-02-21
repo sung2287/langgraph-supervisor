@@ -40,6 +40,7 @@ v1 공식 Step 목록 및 규격은 아래와 같다. Step 이름 변경 및 삭
 | `PersistDecision` | 결정 영구 저장 (v1.1) | `{ decision: DecisionObject }` | `{ id: string, version: number }` |
 | `PersistEvidence` | 근거 영구 저장 (v1.1) | `{ evidence: EvidenceObject }` | `{ id: string }` |
 | `LinkDecisionEvidence` | 결정-근거 연결 (v1.1) | `{ decisionId: string, evidenceId: string }` | `{ status: "linked" }` |
+| `persistAnchor` | Anchor 영속 저장 (v1.1) | `{ id: string, hint: string, targetRef: string, type: "decision_link" \| "evidence_link" }` | `{ id: string }` |
 | `PersistSession` | 세션 참조 영속화 | `{ sessionRef: string, meta: object }` | `{ status: string }` |
 
 ### Core Neutrality Clause (LOCK)
@@ -64,7 +65,8 @@ Execution Cycle 내 Step은 아래의 고정된 순서를 따르며, Plan에 존
 9.  `PersistDecision` (Optional - v1.1)
 10. `PersistEvidence` (Optional - v1.1)
 11. `LinkDecisionEvidence` (Optional - v1.1)
-12. `PersistSession` (Mandatory)
+12. `persistAnchor` (Optional - v1.1)
+13. `PersistSession` (Mandatory)
 
 ### Ordering Clarification
 본 순서는 v1.1 canonical order이다. PolicyInterpreter는 이 순서를 기반으로 Plan을 구성해야 한다. Core는 Plan에 명시된 순서만 실행하며, Step 순서를 재배치하거나 삽입하지 않는다. Executor validation required: subsequence check + mandatory presence + no duplicate StepType. 위반 시 CycleFail 처리한다.
@@ -77,7 +79,7 @@ Execution Cycle 내 Step은 아래의 고정된 순서를 따르며, Plan에 존
 
 | Step Type | Failure Type | Rationale |
 | :--- | :--- | :--- |
-| `PersistMemory`, `PersistDecision`, `PersistEvidence`, `LinkDecisionEvidence`, `PersistSession` | **FailFast** | 저장소 및 세션 데이터 무결성 보호 필수. |
+| `PersistMemory`, `PersistDecision`, `PersistEvidence`, `LinkDecisionEvidence`, `persistAnchor`, `PersistSession` | **FailFast** | 저장소 및 세션 데이터 무결성 보호 필수. |
 | `RepoScan`, `LLMCall`, `SummarizeMemory`, `RetrieveMemory`, `RetrieveDecisionContext` | **CycleFail** | 분석 또는 일시적 오류로 간주, 세션 무결성에 치명적이지 않음. |
 | `ContextSelect`, `PromptAssemble` | **CycleFail** | 로직 오류로 간주, 안전하게 해당 Cycle만 중단. |
 
@@ -118,3 +120,8 @@ interface ExecutionPlan {
 - Flat Step List 모델이 고정되어 동적 분기가 발생하지 않음.
 - Core Engine이 Step의 의미를 해석하지 않고 순수 실행기로서 동작함.
 - `RepoScan` 실패가 `CycleFail`로 조정되어 불필요한 런타임 중단이 방지됨.
+
+### Step Surface Clarification (LOCK)
+
+Under v1.1, the official Step surface includes persistAnchor.
+No hidden or legacy-only step types are permitted in runtime execution.

@@ -19,6 +19,13 @@
 - **Data Integrity**: 저장소 쓰기 등 핵심 Step의 실패 시 즉시 중단(Fail-Fast)하여 데이터 오염을 방지함.
 - **Reproducibility**: 동일한 `executionPlan`이 입력되면 항상 동일한 Step 시퀀스와 결과가 보장됨.
 
+### Anchor Integration Clarification (LOCK)
+
+- Anchor persistence is not experimental.
+- It is a first-class Step within the controlled flat execution model.
+- Controlled extensibility applies; no dynamic or implicit Anchor operations are allowed.
+- All Anchor writes must pass through executionPlan-defined persistAnchor step.
+
 ## 4. Risks & Guards (The How to Prevent)
 
 - **Registry/Ordering/Metadata Lock**: Step 목록, 순서, 메타데이터 스키마를 고정(LOCK)하여 임의 확장을 방지함.

@@ -15,6 +15,17 @@
     - `id` 필드를 사용한 로깅 및 추적.
     - Branching/Conditional 구조를 배제한 순차적 실행.
     - 각 Step의 Payload를 Handler로 전달.
+
+### persistAnchor Enforcement (LOCK)
+
+- `persistAnchor` is treated as a strict write step under v1.1 contract.
+- It participates in ordering validation like other optional steps.
+- It MUST NOT bypass:
+  - Ordering validation
+  - Version gate
+  - Metadata enforcement (if applicable)
+- It follows FailFast semantics for write integrity errors.
+
 4.  **결과 누적**: 각 Step의 결과를 결과 누적부(Result Ledger)에 기록. 각 Step Handler는 `priorResults`를 통해 이전 Step의 결과를 읽기 전용(Read-only)으로 조회할 수 있다. Executor는 결과를 사용하여 다음 Step의 Payload를 자동으로 변형하거나 주입하지 않는다.
     - **RetrieveDecisionContext Enforcement**:
       - `global + axis`는 항상 로드한다.
