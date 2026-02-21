@@ -19,6 +19,7 @@ export interface ProviderResolutionEnv {
 const DEFAULT_TIMEOUT_MS = 30000;
 const DEFAULT_MAX_ATTEMPTS = 3;
 const DEFAULT_BACKOFF_MS = [500, 1000] as const;
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 
 function parseProvider(value: string): ProviderId {
   const normalized = value.trim().toLowerCase();
@@ -86,7 +87,8 @@ export function resolveProviderConfig(
     throw new ConfigurationError("CONFIGURATION_ERROR maxAttempts must be >= 1");
   }
 
-  const model = toTrimmedString(args.model) ?? toTrimmedString(env.LLM_MODEL);
+  const explicitModel = toTrimmedString(args.model) ?? toTrimmedString(env.LLM_MODEL);
+  const model = provider === "gemini" ? explicitModel ?? DEFAULT_GEMINI_MODEL : explicitModel;
 
   if (provider === "gemini") {
     const key = toTrimmedString(env.GEMINI_API_KEY);

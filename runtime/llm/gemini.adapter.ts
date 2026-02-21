@@ -2,7 +2,7 @@ import { LLMClient } from "./llm.types";
 import type { ProviderConfig } from "./provider.config";
 import { ConfigurationError } from "./errors";
 
-const DEFAULT_GEMINI_MODEL = "gemini-1.5-flash";
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
 function sleep(ms: number): Promise<void> {
