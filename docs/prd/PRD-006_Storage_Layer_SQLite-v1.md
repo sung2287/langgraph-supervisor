@@ -45,6 +45,27 @@ PRD-005(Decision / Evidence Engine)의 데이터 모델을 영구 보존하고, 
     - Storage MUST NOT implement hierarchical retrieval logic.
     - Storage MAY execute individual SQL queries requested by Retrieval Engine.
     - Retrieval ordering responsibility belongs strictly to upper layer.
+
+- ### Domain & Phase Ownership (LOCK)
+
+- Domain(currentDomain)은 작업 종류이며 기본은 사용자 수동 전환이다.
+- Phase(mode/phase)는 작업 단계이며 기본은 자동 전환이다.
+- Phase는 Domain을 유도하거나 자동 변경해서는 안 된다.
+- Domain 변경은 오직 명시적 입력(사용자 액션, CLI 옵션, 정책 step 등)으로만 발생한다.
+- Domain 변경 시 Runtime은 반드시 StatePatch로 state.currentDomain을 갱신해 다음 step/세션에 전파한다.
+- currentDomain이 unset인 경우 Retrieval은 global + axis만 로딩한다.
+- Domain-specific Decision은 currentDomain이 명시적으로 설정된 경우에만 로딩한다.
+- Storage Layer는 scope/currentDomain을 결정, 보정, 기본값 설정해서는 안 된다.
+- Storage MUST NOT infer, fallback, override scope.
+- Phase-based scope inference is strictly prohibited.
+
+- **[LOCK] Anchor Persistence Boundary**:
+    - Storage Layer는 anchors 테이블에 대해 Passive CRUD만 제공한다.
+    - Runtime/Step Handler는 SQLiteStore/AnchorStore 구현체에 직접 의존하지 않는다.
+    - Runtime은 PlanExecutorDeps(또는 동급 DI 경계)에 AnchorPort를 노출해야 한다.
+    - Anchor target_ref 무결성 검증은 Storage가 아니라 Application(Service/Handler) 레이어에서 수행한다.
+    - Anchor 저장은 표준 Step Handler(예: persistAnchor step)에서만 수행되며, 테스트 전용 호출 경로는 “임시”로 분류하고 제거/격리한다.
+
 - **Atomic Version Update**: Decision 신규 버전 생성 시, 기존 버전 비활성화와 신규 삽입은 단일 트랜잭션 내에서 원자적으로 처리되어야 한다.
 
 ## Failure Handling

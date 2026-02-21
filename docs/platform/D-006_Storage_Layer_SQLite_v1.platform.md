@@ -64,6 +64,8 @@ CREATE TABLE anchors (
     target_ref TEXT NOT NULL,
     type TEXT CHECK(type IN ('evidence_link', 'decision_link')) NOT NULL
 );
+-- Note: The AnchorPort or corresponding service layer MUST validate referential integrity 
+-- of target_ref before persistence, as the DB does not enforce FKs for this polymorphic reference.
 
 -- repository_snapshots
 CREATE TABLE repository_snapshots (
