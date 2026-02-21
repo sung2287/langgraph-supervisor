@@ -1,7 +1,7 @@
 {
   "_note": "DO NOT CHANGE delta_id. Fill human meaning only.",
-  "delta_id": "20260221_063614_5b954b9e",
-  "one_liner": "PRD-007 v1 step contract를 LOCK하고 executor validation + failure semantics(CycleFail/FailFast)를 도입했다.",
+  "delta_id": "20260221_090202_935b3f55",
+  "one_liner": "PRD-006 완료: SQLite v1 Storage Layer(스키마/버전게이트/WAL/FK/인덱스) 활성 구현 + 운영 하드닝(readonly/단일 active 제약/스키마 변조 감지) + 통합 테스트 락(A~F).",
   "context": [],
   "decisions": [],
   "not_decided": [],
@@ -9,7 +9,7 @@
   "problems": [],
   "risks": [],
   "next_actions": [
-    "PRD-006(SQLite v1) 구현로 돌아가 세션/메모리 저장 Step을 실제 Store에 연결한다."
+    "prd-006-integration-test를 main에 머지한 뒤, PRD-005 PersistStep/Decision-Evidence 엔진을 SQLite DAO에 연결한다."
   ],
   "definition_of_done": []
 }
