@@ -1,7 +1,7 @@
 {
   "_note": "DO NOT CHANGE delta_id. Fill human meaning only.",
-  "delta_id": "20260221_131851_5c613a08",
-  "one_liner": "PRD-008 완료 — PolicyInterpreter가 정규화(phase 검증/버전 선택/topK/legacy step 매핑) SSOT가 되었고 graph.ts는 policy-agnostic bridge로 축소됨",
+  "delta_id": "20260221_134347_d7160c42",
+  "one_liner": "PRD-010 adds explicit session namespacing and fresh-session rotation to prevent hash-mismatch UX friction while keeping strict verification.",
   "context": [],
   "decisions": [],
   "not_decided": [],
@@ -9,7 +9,7 @@
   "problems": [],
   "risks": [],
   "next_actions": [
-    "PRD-010(Session Lifecycle UX) 착수: --session / --fresh-session + mismatch backup/rotation"
+    "Run smoke:llm with --session and --fresh-session to validate real provider flows once keys are available."
   ],
   "definition_of_done": []
 }

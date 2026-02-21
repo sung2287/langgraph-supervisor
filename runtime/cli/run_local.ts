@@ -17,9 +17,31 @@ import { createLLMClientFromProviderConfig } from "../llm/provider.client";
 import { ConfigurationError as LlmConfigurationError } from "../llm/errors";
 import { ConfigurationError as PolicyConfigurationError } from "../../src/policy/interpreter/policy.errors";
 
-const { input, repoPath, phase, profile, provider, model, timeoutMs, maxAttempts } = parseRunLocalArgs(
-  process.argv.slice(2)
-);
+function sanitizeSessionName(raw: string): string {
+  const trimmed = raw.trim();
+  if (trimmed === "") {
+    throw new Error("SESSION_NAMESPACE_INVALID session name must be non-empty");
+  }
+  return trimmed.replace(/[^A-Za-z0-9._-]/g, "_");
+}
+
+const {
+  input,
+  repoPath,
+  phase,
+  profile,
+  freshSession,
+  session,
+  provider,
+  model,
+  timeoutMs,
+  maxAttempts,
+} = parseRunLocalArgs(process.argv.slice(2));
+
+const sessionFilename =
+  typeof session === "string" && session.trim() !== ""
+    ? `session_state.${sanitizeSessionName(session)}.json`
+    : "session_state.json";
 
 try {
   const providerConfig = resolveProviderConfig(
@@ -54,11 +76,16 @@ try {
     policyRef,
   });
 
-  const sessionStore = new FileSessionStore(repoPath);
+  const sessionStore = new FileSessionStore(repoPath, {
+    filename: sessionFilename,
+  });
+  if (freshSession) {
+    sessionStore.prepareFreshSession();
+  }
   const loadedSession = sessionStore.load();
   if (loadedSession !== null) {
     sessionStore.verify(expectedHash);
-    console.log(`[session] loaded session_state.json (sessionId=${loadedSession.sessionId})`);
+    console.log(`[session] loaded ${sessionFilename} (sessionId=${loadedSession.sessionId})`);
   }
   const memoryRepo = new InMemoryRepository();
   const storageLayer = createSQLiteStorageLayer();

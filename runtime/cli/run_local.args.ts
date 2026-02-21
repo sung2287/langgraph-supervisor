@@ -4,6 +4,8 @@ export interface RunLocalArgs {
   repoPath: string;
   profile: string;
   phase: string;
+  freshSession: boolean;
+  session?: string;
   provider?: string;
   model?: string;
   timeoutMs?: number;
@@ -28,6 +30,8 @@ export function parseRunLocalArgs(argv: string[]): RunLocalArgs {
   let repoPathFromFlag: string | undefined;
   let profileFromFlag: string | undefined;
   let phaseFromFlag: string | undefined;
+  let freshSessionFromFlag = false;
+  let sessionFromFlag: string | undefined;
   let providerFromFlag: string | undefined;
   let modelFromFlag: string | undefined;
   let timeoutMsFromFlag: number | undefined;
@@ -58,6 +62,18 @@ export function parseRunLocalArgs(argv: string[]): RunLocalArgs {
       const next = argv[i + 1];
       if (typeof next === "string" && next.trim() !== "") {
         phaseFromFlag = next.trim();
+        i += 1;
+        continue;
+      }
+    }
+    if (token === "--fresh-session") {
+      freshSessionFromFlag = true;
+      continue;
+    }
+    if (token === "--session") {
+      const next = argv[i + 1];
+      if (typeof next === "string" && next.trim() !== "") {
+        sessionFromFlag = next.trim();
         i += 1;
         continue;
       }
@@ -115,6 +131,8 @@ export function parseRunLocalArgs(argv: string[]): RunLocalArgs {
     repoPath,
     profile,
     phase,
+    freshSession: freshSessionFromFlag,
+    session: sessionFromFlag,
     provider: providerFromFlag,
     model: modelFromFlag,
     timeoutMs: timeoutMsFromFlag,
