@@ -1,3 +1,5 @@
+import type { StepType } from "../../core/plan/plan.types";
+
 export interface LegacyExecutionStep {
   type: string;
   params: Record<string, unknown>;
@@ -11,7 +13,7 @@ export interface KindExecutionStep {
 
 export type ExecutionStep = LegacyExecutionStep | KindExecutionStep;
 
-export interface ExecutionPlan {
+export interface LegacyExecutionPlan {
   version: string;
   steps: ExecutionStep[];
   metadata: {
@@ -19,6 +21,24 @@ export interface ExecutionPlan {
     policyId: string;
   };
 }
+
+export interface NormalizedStep {
+  id: string;
+  type: StepType;
+  payload?: Record<string, unknown>;
+}
+
+export interface NormalizedExecutionPlan {
+  step_contract_version: "1" | "1.1";
+  metadata: {
+    policyProfile: string;
+    mode: string;
+    topK?: number;
+  };
+  steps: NormalizedStep[];
+}
+
+export type ExecutionPlan = LegacyExecutionPlan;
 
 export interface ModeDefinition {
   id: string;

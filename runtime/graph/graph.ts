@@ -5,14 +5,9 @@ import type {
   GraphState as CoreGraphState,
   PlanExecutorDeps,
   PolicyRef,
-  StepDefinition,
-  StepType,
 } from "../../src/core/plan/plan.types";
 import type { StepExecutorRegistry } from "../../src/core/plan/step.registry";
-import type {
-  ExecutionPlan as PolicyExecutionPlan,
-  ExecutionStep as PolicyExecutionStep,
-} from "../../src/policy/schema/policy.types";
+import type { NormalizedExecutionPlan } from "../../src/policy/schema/policy.types";
 
 export type GraphState = CoreGraphState;
 
@@ -50,136 +45,39 @@ export const GraphStateAnnotation = Annotation.Root({
   stepLog: Annotation<string[]>,
 });
 
-function asRecord(value: unknown): Record<string, unknown> {
-  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-  return {};
-}
-
-const POLICY_TO_STEP_TYPE: Readonly<Record<string, StepType>> = Object.freeze({
-  RepoScan: "RepoScan",
-  repo_scan: "RepoScan",
-  repo_context: "RepoScan",
-  LoadDocsForMode: "RepoScan",
-  ContextSelect: "ContextSelect",
-  context_select: "ContextSelect",
-  RetrieveMemory: "RetrieveMemory",
-  retrieve_memory: "RetrieveMemory",
-  recall: "ContextSelect",
-  RetrieveDecisionContext: "RetrieveDecisionContext",
-  retrieve_decision_context: "RetrieveDecisionContext",
-  PromptAssemble: "PromptAssemble",
-  assemble_prompt: "PromptAssemble",
-  LLMCall: "LLMCall",
-  llm_call: "LLMCall",
-  SummarizeMemory: "SummarizeMemory",
-  summarize_memory: "SummarizeMemory",
-  PersistMemory: "PersistMemory",
-  persist_memory: "PersistMemory",
-  MemoryWrite: "PersistMemory",
-  memory_write: "PersistMemory",
-  PersistDecision: "PersistDecision",
-  persist_decision: "PersistDecision",
-  PersistEvidence: "PersistEvidence",
-  persist_evidence: "PersistEvidence",
-  LinkDecisionEvidence: "LinkDecisionEvidence",
-  link_decision_evidence: "LinkDecisionEvidence",
-  PersistSession: "PersistSession",
-  persist_session: "PersistSession",
-});
-
-const V11_ONLY_STEP_TYPES = new Set<StepType>([
-  "RetrieveDecisionContext",
-  "PersistDecision",
-  "PersistEvidence",
-  "LinkDecisionEvidence",
-]);
-
-function mapPolicyStepType(rawType: string): StepType {
-  const normalized = rawType.trim();
-  const mapped = POLICY_TO_STEP_TYPE[normalized];
-  if (mapped) {
-    return mapped;
-  }
-  throw new Error(`PLAN_NORMALIZATION_ERROR unsupported step type '${normalized}'`);
-}
-
-function normalizePolicyStep(step: PolicyExecutionStep, idx: number): StepDefinition {
-  const raw = step as Record<string, unknown>;
-  const paramsRaw = raw.params;
-  const payload =
-    typeof paramsRaw === "object" && paramsRaw !== null && !Array.isArray(paramsRaw)
-      ? { ...(paramsRaw as Record<string, unknown>) }
-      : {};
-
-  const rawKind =
-    typeof raw.kind === "string" && raw.kind.trim() !== ""
-      ? raw.kind
-      : typeof raw.type === "string" && raw.type.trim() !== ""
-        ? raw.type
-        : "";
-  if (rawKind === "") {
-    throw new Error("PLAN_NORMALIZATION_ERROR step requires non-empty kind or type");
-  }
-
-  return {
-    id: typeof raw.id === "string" && raw.id.trim() !== "" ? raw.id : `step-${String(idx + 1)}`,
-    type: mapPolicyStepType(rawKind),
-    payload,
-  };
-}
-
-export function toCoreExecutionPlan(plan: PolicyExecutionPlan): CoreExecutionPlan {
-  const mode = plan.metadata.modeLabel;
+export function toCoreExecutionPlan(plan: NormalizedExecutionPlan): CoreExecutionPlan {
+  const mode = plan.metadata.mode;
   if (typeof mode !== "string" || mode.trim() === "") {
-    throw new Error("PLAN_NORMALIZATION_ERROR metadata.modeLabel must be provided");
+    throw new Error("PLAN_NORMALIZATION_ERROR metadata.mode must be provided");
   }
-
-  const normalizedSteps = plan.steps.map((step, idx) => normalizePolicyStep(step, idx));
-  if (!normalizedSteps.some((step) => step.type === "PersistSession")) {
-    const existingIds = new Set(normalizedSteps.map((step) => step.id));
-    let seq = normalizedSteps.length + 1;
-    let generatedId = `step-${String(seq)}`;
-    while (existingIds.has(generatedId)) {
-      seq += 1;
-      generatedId = `step-${String(seq)}`;
-    }
-    normalizedSteps.push({
-      id: generatedId,
-      type: "PersistSession",
-      payload: {},
-    });
+  const policyProfile = plan.metadata.policyProfile;
+  if (typeof policyProfile !== "string" || policyProfile.trim() === "") {
+    throw new Error("PLAN_NORMALIZATION_ERROR metadata.policyProfile must be provided");
   }
-  const retrieveMemoryStep = normalizedSteps.find((step) => step.type === "RetrieveMemory");
-  const retrievePayload = retrieveMemoryStep ? asRecord(retrieveMemoryStep.payload) : {};
-  const topKCandidate = retrievePayload.topK;
-  const stepContractVersion = normalizedSteps.some((step) => V11_ONLY_STEP_TYPES.has(step.type))
-    ? "1.1"
-    : "1";
 
   return {
-    step_contract_version: stepContractVersion,
+    step_contract_version: plan.step_contract_version,
     extensions: [],
     metadata: {
-      topK:
-        typeof topKCandidate === "number" && Number.isFinite(topKCandidate)
-          ? topKCandidate
-          : undefined,
-      policyProfile: plan.metadata.policyId,
+      topK: plan.metadata.topK,
+      policyProfile,
       mode,
     },
-    steps: normalizedSteps,
+    steps: plan.steps.map((step) => ({
+      id: step.id,
+      type: step.type,
+      payload: step.payload ?? {},
+    })),
   };
 }
 
 export function toPolicyRef(
-  plan: PolicyExecutionPlan,
+  plan: NormalizedExecutionPlan,
   docBundleRefs: readonly string[] = []
 ): PolicyRef {
   return Object.freeze({
-    policyId: plan.metadata.policyId,
-    modeLabel: plan.metadata.modeLabel,
+    policyId: plan.metadata.policyProfile,
+    modeLabel: plan.metadata.mode,
     docBundleRefs: [...docBundleRefs],
   });
 }

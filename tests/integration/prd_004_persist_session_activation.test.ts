@@ -16,7 +16,7 @@ import { createRuntimePlanExecutorDeps } from "../../runtime/graph/plan_executor
 import { createSQLiteStorageLayer } from "../../src/adapter/storage/sqlite";
 import { FileSessionStore, SESSION_STATE_REL_PATH } from "../../src/session/file_session.store";
 import { FailFastError } from "../../src/core/plan/errors";
-import type { ExecutionPlan as PolicyExecutionPlan } from "../../src/policy/schema/policy.types";
+import { PolicyInterpreter } from "../../src/policy/interpreter/policy.interpreter";
 import {
   isExecutionPlanV1 as isCorePlanV1,
   type ExecutionPlanV1,
@@ -67,19 +67,17 @@ function makeState(plan: ExecutionPlanV1, projectId: string): GraphState {
   };
 }
 
-function makePolicyPlanWithoutPersistSession(): PolicyExecutionPlan {
-  return {
-    version: "1.0",
-    steps: [
-      { type: "recall", params: { input: "테스트", sources: [] } },
-      { type: "assemble_prompt", params: {} },
-      { type: "llm_call", params: {} },
-    ],
-    metadata: {
-      policyId: "policy-default",
-      modeLabel: "default",
-    },
-  };
+function makeCorePlanWithoutPersistSession(): ExecutionPlanV1 {
+  const interpreter = new PolicyInterpreter({
+    repoRoot: process.cwd(),
+    profile: "default",
+  });
+  const normalizedPlan = interpreter.resolveExecutionPlan({ userInput: "테스트" });
+  const corePlan = toCoreExecutionPlan(normalizedPlan);
+  if (!isCorePlanV1(corePlan)) {
+    assert.fail("expected step contract v1 plan");
+  }
+  return corePlan;
 }
 
 test("PersistSession mandatory is auto-emitted and writes session_state.json via Step", async (t) => {
@@ -89,11 +87,7 @@ test("PersistSession mandatory is auto-emitted and writes session_state.json via
   storageLayer.storage.connect();
   t.after(() => storageLayer.storage.close());
 
-  const corePlan = toCoreExecutionPlan(makePolicyPlanWithoutPersistSession());
-  assert.equal(isCorePlanV1(corePlan), true);
-  if (!isCorePlanV1(corePlan)) {
-    assert.fail("expected step contract v1 plan");
-  }
+  const corePlan = makeCorePlanWithoutPersistSession();
   assert.equal(corePlan.steps.some((step) => step.type === "PersistSession"), true);
 
   await executePlan(
@@ -146,11 +140,7 @@ test("PersistSession write failure is Fail-Fast and leaves no temp artifact", as
   storageLayer.storage.connect();
   t.after(() => storageLayer.storage.close());
 
-  const corePlan = toCoreExecutionPlan(makePolicyPlanWithoutPersistSession());
-  assert.equal(isCorePlanV1(corePlan), true);
-  if (!isCorePlanV1(corePlan)) {
-    assert.fail("expected step contract v1 plan");
-  }
+  const corePlan = makeCorePlanWithoutPersistSession();
 
   await assert.rejects(
     () =>

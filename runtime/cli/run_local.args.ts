@@ -1,24 +1,16 @@
-export const ALLOWED_PHASES = ["default", "diagnose", "implement"] as const;
-
-export type RuntimePhase = (typeof ALLOWED_PHASES)[number];
-
 export interface RunLocalArgs {
   input: string;
   projectId: string;
   repoPath: string;
   profile: string;
-  phase: RuntimePhase;
+  phase: string;
   provider?: string;
   model?: string;
   timeoutMs?: number;
   maxAttempts?: number;
 }
 
-function isRuntimePhase(value: string): value is RuntimePhase {
-  return (ALLOWED_PHASES as readonly string[]).includes(value);
-}
-
-export function normalizePhase(raw: string | undefined): RuntimePhase {
+export function normalizePhase(raw: string | undefined): string {
   const trimmed = typeof raw === "string" ? raw.trim() : "";
   if (trimmed === "") {
     return "default";
@@ -28,14 +20,7 @@ export function normalizePhase(raw: string | undefined): RuntimePhase {
   if (lowered === "chat") {
     return "default";
   }
-
-  if (isRuntimePhase(lowered)) {
-    return lowered;
-  }
-
-  throw new Error(
-    `Unknown phase "${trimmed}". Available phases: ${ALLOWED_PHASES.join(", ")}`
-  );
+  return lowered;
 }
 
 export function parseRunLocalArgs(argv: string[]): RunLocalArgs {

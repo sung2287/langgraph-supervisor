@@ -1,11 +1,16 @@
-/** Intent: PRD-002/003 policy interpreter contract — fail-fast loading and kind/type step normalization with kind priority. */
+/**
+ * Intent: PRD-008 PolicyInterpreter contract lock — interpreter must emit normalized execution plans and own phase validation.
+ * Scope: Profile loading fail-fast, normalized step/type output stability, and invalid phase ConfigurationError before graph/core.
+ * Non-Goals: Core executor contract validation semantics and runtime graph legacy mapping behavior.
+ */
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { PolicyInterpreter } from "../../src/policy/interpreter/policy.interpreter";
-import type { ExecutionStep } from "../../src/policy/schema/policy.types";
+import { ConfigurationError } from "../../src/policy/interpreter/policy.errors";
+import { toCoreExecutionPlan } from "../../runtime/graph/graph";
 
 function makeTempRepo(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "policy-interpreter-"));
@@ -23,12 +28,8 @@ function writeProfile(
   fs.writeFileSync(path.join(profileRoot, "bundles.yaml"), files.bundles, "utf8");
 }
 
-function stepKey(step: ExecutionStep): string {
-  const row = step as Record<string, unknown>;
-  if (typeof row.kind === "string") {
-    return row.kind;
-  }
-  return String(row.type);
+function stepTypes(plan: ReturnType<PolicyInterpreter["resolveExecutionPlan"]>): string[] {
+  return plan.steps.map((step) => step.type);
 }
 
 test("policy interpreter: missing profile directory throws fail-fast", () => {
@@ -93,7 +94,32 @@ bundles: []
   );
 });
 
-test("policy interpreter: re: condition selects mode and execution steps", () => {
+test("policy interpreter: representative mode normalization stays stable (snapshot-ish)", () => {
+  const interpreter = new PolicyInterpreter({
+    repoRoot: process.cwd(),
+    profile: "default",
+  });
+
+  const plan = interpreter.resolveExecutionPlan({ userInput: "hello world" });
+
+  assert.deepEqual(plan, {
+    step_contract_version: "1",
+    metadata: {
+      policyProfile: "default",
+      mode: "default",
+      topK: undefined,
+    },
+    steps: [
+      { id: "step-1", type: "ContextSelect", payload: {} },
+      { id: "step-2", type: "PromptAssemble", payload: {} },
+      { id: "step-3", type: "LLMCall", payload: {} },
+      { id: "step-4", type: "PersistMemory", payload: {} },
+      { id: "step-5", type: "PersistSession", payload: {} },
+    ],
+  });
+});
+
+test("policy interpreter: re: condition selects mode and emits normalized step types", () => {
   const interpreter = new PolicyInterpreter({
     repoRoot: process.cwd(),
     profile: "default",
@@ -101,11 +127,15 @@ test("policy interpreter: re: condition selects mode and execution steps", () =>
 
   const plan = interpreter.resolveExecutionPlan({ userInput: "diag: investigate timeout" });
 
-  assert.equal(plan.metadata.modeLabel, "diagnose");
-  assert.deepEqual(
-    plan.steps.map((step) => stepKey(step)),
-    ["recall", "repo_scan", "assemble_prompt", "llm_call", "memory_write"]
-  );
+  assert.equal(plan.metadata.mode, "diagnose");
+  assert.deepEqual(stepTypes(plan), [
+    "ContextSelect",
+    "RepoScan",
+    "PromptAssemble",
+    "LLMCall",
+    "PersistMemory",
+    "PersistSession",
+  ]);
 });
 
 test("policy interpreter: no trigger match falls back to default mode", () => {
@@ -115,11 +145,57 @@ test("policy interpreter: no trigger match falls back to default mode", () => {
   });
 
   const plan = interpreter.resolveExecutionPlan({ userInput: "hello world" });
-  assert.equal(plan.metadata.modeLabel, "default");
-  assert.deepEqual(
-    plan.steps.map((step) => stepKey(step)),
-    ["recall", "assemble_prompt", "llm_call", "memory_write"]
+  assert.equal(plan.metadata.mode, "default");
+  assert.deepEqual(stepTypes(plan), [
+    "ContextSelect",
+    "PromptAssemble",
+    "LLMCall",
+    "PersistMemory",
+    "PersistSession",
+  ]);
+});
+
+test("policy interpreter: invalid requested phase throws ConfigurationError before graph/core", () => {
+  const interpreter = new PolicyInterpreter({
+    repoRoot: process.cwd(),
+    profile: "default",
+  });
+
+  assert.throws(
+    () => {
+      interpreter.resolveExecutionPlan({
+        userInput: "hello",
+        requestedPhase: "not-a-real-mode",
+      });
+    },
+    (error: unknown) => {
+      return (
+        error instanceof ConfigurationError &&
+        /Unknown phase "not-a-real-mode"/.test(error.message)
+      );
+    }
   );
+});
+
+test("policy interpreter: invalid phase blocks graph/core handoff", () => {
+  const interpreter = new PolicyInterpreter({
+    repoRoot: process.cwd(),
+    profile: "default",
+  });
+
+  let coreHandoffReached = false;
+  assert.throws(
+    () => {
+      const plan = interpreter.resolveExecutionPlan({
+        userInput: "hello",
+        requestedPhase: "nope",
+      });
+      coreHandoffReached = true;
+      toCoreExecutionPlan(plan);
+    },
+    (error: unknown) => error instanceof ConfigurationError
+  );
+  assert.equal(coreHandoffReached, false);
 });
 
 test("policy interpreter: missing default mode fails fast when no trigger matches", () => {
@@ -173,8 +249,8 @@ test("policy interpreter: kind takes precedence over type when both exist", () =
 modes:
   - id: "default"
     plan:
-      - kind: "opaque_kind"
-        type: "legacy_type"
+      - kind: "recall"
+        type: "llm_call"
         params:
           x: 1
 `,
@@ -192,5 +268,5 @@ bundles: []
   });
   const plan = interpreter.resolveExecutionPlan({ userInput: "hello" });
 
-  assert.equal(stepKey(plan.steps[0]!), "opaque_kind");
+  assert.equal(plan.steps[0]?.type, "ContextSelect");
 });

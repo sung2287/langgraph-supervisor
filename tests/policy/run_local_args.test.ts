@@ -1,4 +1,8 @@
-/** Intent: runtime CLI phase parsing must be deterministic (default/diagnose/implement), with legacy CHAT mapped to default. */
+/**
+ * Intent: PRD-008 lock — CLI phase parsing is syntax-only and final phase validity is owned by PolicyInterpreter.
+ * Scope: run_local args normalization behavior for default/chat alias and pass-through unknown phases.
+ * Non-Goals: Policy profile mode existence validation in CLI.
+ */
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -39,11 +43,9 @@ test("phase: omitted flag defaults to default", () => {
   assert.equal(args.phase, "default");
 });
 
-test("phase: unknown value throws with allowed list", () => {
-  assert.throws(
-    () => parseRunLocalArgs(["--phase", "WHAT"]),
-    /Unknown phase "WHAT"\. Available phases: default, diagnose, implement/
-  );
+test("phase: unknown value is passed through for interpreter validation", () => {
+  const args = parseRunLocalArgs(["--phase", "WHAT"]);
+  assert.equal(args.phase, "what");
 });
 
 test("phase parsing works with -- separator", () => {

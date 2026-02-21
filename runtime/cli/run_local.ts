@@ -14,7 +14,8 @@ import { CycleFailError, FailFastError } from "../../src/core/plan/errors";
 import { createSQLiteStorageLayer } from "../../src/adapter/storage/sqlite";
 import { resolveProviderConfig } from "../llm/provider.router";
 import { createLLMClientFromProviderConfig } from "../llm/provider.client";
-import { ConfigurationError } from "../llm/errors";
+import { ConfigurationError as LlmConfigurationError } from "../llm/errors";
+import { ConfigurationError as PolicyConfigurationError } from "../../src/policy/interpreter/policy.errors";
 
 const { input, repoPath, phase, profile, provider, model, timeoutMs, maxAttempts } = parseRunLocalArgs(
   process.argv.slice(2)
@@ -43,7 +44,7 @@ try {
     userInput: input,
     requestedPhase: phase,
   });
-  const modeLabel = resolvedPlan.metadata.modeLabel;
+  const modeLabel = resolvedPlan.metadata.mode;
   const bundles = modeLabel ? interpreter.getBundlesForMode(modeLabel) : [];
   const docBundleRefs = bundles.flatMap((bundle) => bundle.files);
   const executionPlan = toCoreExecutionPlan(resolvedPlan);
@@ -74,7 +75,7 @@ try {
           executionPlan,
           policyRef,
           projectId: repoPath,
-          currentMode: resolvedPlan.metadata.modeLabel,
+          currentMode: resolvedPlan.metadata.mode,
         },
         {
           planExecutorDeps: createRuntimePlanExecutorDeps({
@@ -98,10 +99,10 @@ try {
   console.log(output);
   console.log("----- plan metadata -----");
   console.log(
-    `policyId=${resolvedPlan.metadata.policyId} modeLabel=${resolvedPlan.metadata.modeLabel ?? "UNSPECIFIED"}`
+    `policyId=${resolvedPlan.metadata.policyProfile} modeLabel=${resolvedPlan.metadata.mode ?? "UNSPECIFIED"}`
   );
 } catch (error) {
-  if (error instanceof ConfigurationError) {
+  if (error instanceof LlmConfigurationError || error instanceof PolicyConfigurationError) {
     console.error(`run:local configuration error: ${error.message}`);
     process.exitCode = 1;
   } else if (error instanceof CycleFailError) {
