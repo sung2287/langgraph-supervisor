@@ -4,16 +4,16 @@
 ## Meta
 - project: 저작관리시스템
 - state_version: 2
-- last_updated: 2026-02-20
+- last_updated: 2026-02-21
 - updated_by: human
-- update_reason: close PRD-004
-- latest_delta_id: 20260220_080701_8ab47303
+- update_reason: close PRD-007
+- latest_delta_id: 20260221_063614_5b954b9e
 - git_base: origin/main
-- git_merge_base: 3dd7a6d25bcd917a08959ed3e71cfdd721d724ef
-- git_head: 8052394a860715696f5f856cceaa98a7cfa236ba
-- git_head_short: 8052394
-- git_branch: prd-004_session_persistence
-- changed_files_sha256: 5aee02b6f9b096b0abc0a0851614a54bdd456fc938d99411b86be3c1d02e4c66
+- git_merge_base: 54596127b1f8e70358d2ef1c81756e5897f7a3ad
+- git_head: 84fdd92e83179797519c09c6b05ed2509035239c
+- git_head_short: 84fdd92
+- git_branch: prd-007-step-contract-lock
+- changed_files_sha256: 5011411261f2c5c2d546a97d82dca7f1211896fc6e60a35e702ac3f870143f14
 - typecheck_exit_code: 0
 - test_exit_code: 0
 
@@ -39,7 +39,7 @@
 - naming_rule: ABCD File Naming (LOCKED)
 
 ## Current Scope (Approved/Done)
-- prd_done: [PRD-002, PRD-001, PRD-003, PRD-004]
+- prd_done: [PRD-002, PRD-001, PRD-003, PRD-004, PRD-007]
 - core_promoted:
   - PRD-001 (Create)
 - core_status: Partial; non-TOC core files removed during cleanup, recovery in progress

@@ -1,7 +1,7 @@
 {
   "_note": "DO NOT CHANGE delta_id. Fill human meaning only.",
-  "delta_id": "20260220_080701_8ab47303",
-  "one_liner": "File-based session persistence added with strict fail-fast verification and cycle-end-only atomic save (PRD-004)",
+  "delta_id": "20260221_063614_5b954b9e",
+  "one_liner": "PRD-007 v1 step contract를 LOCK하고 executor validation + failure semantics(CycleFail/FailFast)를 도입했다.",
   "context": [],
   "decisions": [],
   "not_decided": [],
@@ -9,7 +9,7 @@
   "problems": [],
   "risks": [],
   "next_actions": [
-    "Integrate session persistence with supervisor graph entrypoint and validate resume behavior across multi-run scenarios"
+    "PRD-006(SQLite v1) 구현로 돌아가 세션/메모리 저장 Step을 실제 Store에 연결한다."
   ],
   "definition_of_done": []
 }
