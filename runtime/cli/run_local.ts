@@ -14,6 +14,7 @@ import {
 } from "../graph/graph";
 import { createRuntimeStepExecutorRegistry } from "../graph/step_executor_registry";
 import { InMemoryRepository } from "../memory/in_memory.repository";
+import { CycleFailError, FailFastError } from "../../src/core/plan/errors";
 
 const { input, repoPath, phase, profile } = parseRunLocalArgs(
   process.argv.slice(2)
@@ -97,7 +98,14 @@ try {
     `policyId=${resolvedPlan.metadata.policyId} modeLabel=${resolvedPlan.metadata.modeLabel ?? "UNSPECIFIED"}`
   );
 } catch (error) {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error(`run:local failed: ${message}`);
-  process.exitCode = 1;
+  if (error instanceof CycleFailError) {
+    console.error(`run:local cycle failed: ${error.message}`);
+  } else if (error instanceof FailFastError) {
+    console.error(`run:local fail-fast: ${error.message}`);
+    process.exitCode = 1;
+  } else {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`run:local failed: ${message}`);
+    process.exitCode = 1;
+  }
 }

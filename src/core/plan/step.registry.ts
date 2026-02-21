@@ -32,6 +32,7 @@ export type StepExecutor = (
 
 export interface StepExecutorRegistry {
   register(kind: string, executor: StepExecutor): this;
+  isRegistered(kind: string): boolean;
   execute(
     kind: string,
     step: Step,
@@ -46,6 +47,10 @@ class DefaultStepExecutorRegistry implements StepExecutorRegistry {
   register(kind: string, executor: StepExecutor): this {
     this.executors.set(kind, executor);
     return this;
+  }
+
+  isRegistered(kind: string): boolean {
+    return this.executors.has(kind);
   }
 
   async execute(
