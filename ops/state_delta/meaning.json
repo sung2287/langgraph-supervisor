@@ -1,15 +1,13 @@
 {
   "_note": "DO NOT CHANGE delta_id. Fill human meaning only.",
-  "delta_id": "20260221_090202_935b3f55",
-  "one_liner": "PRD-006 완료: SQLite v1 Storage Layer(스키마/버전게이트/WAL/FK/인덱스) 활성 구현 + 운영 하드닝(readonly/단일 active 제약/스키마 변조 감지) + 통합 테스트 락(A~F).",
+  "delta_id": "20260221_094148_8edf5ab1",
+  "one_liner": "Decision/Evidence engine with domain-scoped hierarchical retrieval and runtime-safe persistence is now production-ready.",
   "context": [],
   "decisions": [],
   "not_decided": [],
   "rationale": [],
   "problems": [],
   "risks": [],
-  "next_actions": [
-    "prd-006-integration-test를 main에 머지한 뒤, PRD-005 PersistStep/Decision-Evidence 엔진을 SQLite DAO에 연결한다."
-  ],
+  "next_actions": [],
   "definition_of_done": []
 }
