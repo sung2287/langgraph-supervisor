@@ -1,54 +1,9 @@
-import { PolicyInterpreter } from "../../src/policy/interpreter/policy.interpreter";
-import { computeExecutionPlanHash } from "../../src/session/execution_plan_hash";
-import { FileSessionStore } from "../../src/session/file_session.store";
 import { parseRunLocalArgs } from "./run_local.args";
-import {
-  runGraph,
-  toCoreExecutionPlan,
-  toPolicyRef,
-} from "../graph/graph";
-import { createRuntimeStepExecutorRegistry } from "../graph/step_executor_registry";
-import { createRuntimePlanExecutorDeps } from "../graph/plan_executor_deps";
-import { InMemoryRepository } from "../memory/in_memory.repository";
 import { CycleFailError, FailFastError } from "../../src/core/plan/errors";
-import { createSQLiteStorageLayer } from "../../src/adapter/storage/sqlite";
-import { resolveProviderConfig } from "../llm/provider.router";
-import { createLLMClientFromProviderConfig } from "../llm/provider.client";
 import { ConfigurationError as LlmConfigurationError } from "../llm/errors";
 import { ConfigurationError as PolicyConfigurationError } from "../../src/policy/interpreter/policy.errors";
-import { FileSecretManager } from "../secrets/secret.manager";
-import type { PolicyRef } from "../../src/core/plan/plan.types";
-
-const GLOBAL_HASH_DOMAIN = "global";
-const DEFAULT_HASH_MODEL = "DEFAULT";
-
-function resolveHashMode(policyRef: PolicyRef, fallbackMode: string): string {
-  const modeLabel = (policyRef as { modeLabel?: unknown }).modeLabel;
-  if (typeof modeLabel === "string" && modeLabel.trim() !== "") {
-    return modeLabel;
-  }
-  return fallbackMode;
-}
-
-function resolveHashDomain(currentDomain: string | undefined): string {
-  if (typeof currentDomain !== "string") {
-    return GLOBAL_HASH_DOMAIN;
-  }
-  const trimmed = currentDomain.trim();
-  return trimmed === "" ? GLOBAL_HASH_DOMAIN : trimmed;
-}
-
-function sanitizeSessionName(raw: string): string {
-  const trimmed = raw.trim();
-  if (trimmed === "") {
-    throw new Error("SESSION_NAMESPACE_INVALID session name must be non-empty");
-  }
-  return trimmed.replace(/[^A-Za-z0-9._-]/g, "_");
-}
-
-function isSessionHashMismatchError(error: unknown): error is Error {
-  return error instanceof Error && error.message.startsWith("SESSION_STATE_HASH_MISMATCH");
-}
+import { isSessionHashMismatchError, runRuntimeOnce } from "../orchestrator/run_request";
+import { buildSessionFilename } from "../orchestrator/session_namespace";
 
 const {
   input,
@@ -65,118 +20,34 @@ const {
   maxAttempts,
 } = parseRunLocalArgs(process.argv.slice(2));
 
-const sessionFilename =
-  typeof session === "string" && session.trim() !== ""
-    ? `session_state.${sanitizeSessionName(session)}.json`
-    : "session_state.json";
+const sessionFilename = buildSessionFilename(session);
 
 try {
-  const secretManager = new FileSecretManager();
-  const loadedSecretProfile = await secretManager.loadProfile(secretProfile);
-  const preValidationEnv = secretManager.getInjectionEnv(loadedSecretProfile);
-  const providerResolutionEnv = {
-    ...process.env,
-    ...preValidationEnv,
-  };
-
-  const providerConfig = resolveProviderConfig(
-    {
-      provider,
-      model,
-      timeoutMs,
-      maxAttempts,
-    },
-    providerResolutionEnv
-  );
-  const injectionEnv = secretManager.getInjectionEnv(loadedSecretProfile, providerConfig.provider);
-  const providerRuntimeEnv = {
-    ...process.env,
-    ...injectionEnv,
-  };
-  const llm = createLLMClientFromProviderConfig(providerConfig, providerRuntimeEnv);
-  console.log(
-    `mode=local repoPath=${repoPath} phase=${phase} profile=${profile} secretProfile=${secretProfile} provider=${providerConfig.provider} model=${providerConfig.model ?? "DEFAULT"}`
-  );
-
-  const interpreter = new PolicyInterpreter({
-    repoRoot: repoPath,
+  const result = await runRuntimeOnce({
+    inputText: input,
+    repoPath,
+    phase,
+    currentDomain,
     profile,
-  });
-  const resolvedPlan = interpreter.resolveExecutionPlan({
-    userInput: input,
-    requestedPhase: phase,
-  });
-  const modeLabel = resolvedPlan.metadata.mode;
-  const bundles = modeLabel ? interpreter.getBundlesForMode(modeLabel) : [];
-  const docBundleRefs = bundles.flatMap((bundle) => bundle.files);
-  const executionPlan = toCoreExecutionPlan(resolvedPlan);
-  const policyRef = toPolicyRef(resolvedPlan, docBundleRefs);
-  const hashMetadata = {
-    provider: providerConfig.provider,
-    model: providerConfig.model ?? DEFAULT_HASH_MODEL,
-    mode: resolveHashMode(policyRef, resolvedPlan.metadata.mode),
-    domain: resolveHashDomain(currentDomain),
-  } as const;
-  // Breaking change (PRD-012A): legacy session_state hashes will mismatch; use --fresh-session.
-  const expectedHash = computeExecutionPlanHash({
-    executionPlan,
-    policyRef,
-    metadata: hashMetadata,
+    secretProfile,
+    freshSession,
+    sessionName: session,
+    provider,
+    model,
+    timeoutMs,
+    maxAttempts,
   });
 
-  const sessionStore = new FileSessionStore(repoPath, {
-    filename: sessionFilename,
-  });
-  if (freshSession) {
-    sessionStore.prepareFreshSession();
-  }
-  const loadedSession = sessionStore.load();
-  if (loadedSession !== null) {
-    sessionStore.verify(expectedHash);
-    console.log(`[session] loaded ${sessionFilename} (sessionId=${loadedSession.sessionId})`);
-  }
-  const memoryRepo = new InMemoryRepository();
-  const storageLayer = createSQLiteStorageLayer();
-  storageLayer.storage.connect();
-  const stepExecutorRegistry = await createRuntimeStepExecutorRegistry({
-    repoRoot: repoPath,
-  });
-
-  const result = await (async () => {
-    try {
-      return await runGraph(
-        {
-          userInput: input,
-          executionPlan,
-          policyRef,
-          projectId: repoPath,
-          currentMode: resolvedPlan.metadata.mode,
-          currentDomain,
-        },
-        {
-          planExecutorDeps: createRuntimePlanExecutorDeps({
-            llmClient: llm,
-            memoryRepo,
-            storageLayer,
-            sessionStore,
-            expectedHash,
-            loadedSession,
-          }),
-          stepExecutorRegistry,
-        }
-      );
-    } finally {
-      storageLayer.storage.close();
-    }
-  })();
-
-  const output = result.lastResponse ?? "";
-  console.log("----- output -----");
-  console.log(output);
-  console.log("----- plan metadata -----");
   console.log(
-    `policyId=${resolvedPlan.metadata.policyProfile} modeLabel=${resolvedPlan.metadata.mode ?? "UNSPECIFIED"}`
+    `mode=local repoPath=${repoPath} phase=${phase} profile=${profile} secretProfile=${secretProfile} provider=${result.provider} model=${result.model}`
   );
+  if (typeof result.loadedSessionId === "string" && result.loadedSessionId !== "") {
+    console.log(`[session] loaded ${sessionFilename} (sessionId=${result.loadedSessionId})`);
+  }
+  console.log("----- output -----");
+  console.log(result.output);
+  console.log("----- plan metadata -----");
+  console.log(`policyId=${result.policyId} modeLabel=${result.modeLabel}`);
 } catch (error) {
   if (error instanceof LlmConfigurationError || error instanceof PolicyConfigurationError) {
     console.error(`run:local configuration error: ${error.message}`);

@@ -20,7 +20,8 @@
     "ci:gate": "npm run ci:hold-tests && npm run ci:intent && npm run ci:static && npm run typecheck && npm test",
     "arch:check": "depcruise --config .dependency-cruiser.json --output-type err src",
     "run:local": "node --import tsx runtime/cli/run_local.ts --",
-    "secret": "node --import tsx runtime/cli/secret.ts --"
+    "secret": "node --import tsx runtime/cli/secret.ts --",
+    "run:web": "node --import tsx src/adapters/web/index.ts"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
