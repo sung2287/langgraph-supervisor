@@ -26,6 +26,24 @@ export interface WebSessionContext {
   readonly sessionFilename: string;
 }
 
+export interface WebSessionListItemDTO {
+  readonly sessionId: string;
+  readonly lastUserMessagePreview?: string;
+  readonly lastUpdatedAt: number;
+  readonly isActive: boolean;
+}
+
+export interface WebSessionDeleteResultDTO {
+  readonly deletedSessionId: string;
+  readonly newActiveSessionId?: string;
+  readonly status: string;
+}
+
+export interface WebSessionSwitchResultDTO {
+  readonly currentSessionId: string;
+  readonly status: string;
+}
+
 export interface WebSubmitInput {
   readonly sessionId: string;
   readonly text: string;
@@ -51,6 +69,9 @@ export interface WebRerunInput {
 export interface IWebRuntimeAdapter {
   initWebSession(sessionId: string): Promise<WebSessionContext>;
   getCurrentState(sessionId: string): Promise<GraphStateSnapshot>;
+  listWebSessions(sessionHint?: string): Promise<readonly WebSessionListItemDTO[]>;
+  switchWebSession(sessionId: string): Promise<WebSessionSwitchResultDTO>;
+  deleteWebSession(sessionId: string): Promise<WebSessionDeleteResultDTO>;
   submitInput(input: WebSubmitInput): Promise<GraphStateSnapshot>;
   resetSession(sessionId: string): Promise<GraphStateSnapshot>;
   rerunFromStart(input: WebRerunInput): Promise<GraphStateSnapshot>;

@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { GraphStateSnapshot, HistoryItem } from "../../web.types";
+import type {
+  GraphStateSnapshot,
+  HistoryItem,
+  WebSessionDeleteResultDTO,
+  WebSessionListItemDTO,
+  WebSessionSwitchResultDTO,
+} from "../../web.types";
+import { SessionPanel } from "./SessionPanel";
 import { Timeline } from "./Timeline";
 
 const DEFAULT_SESSION_NAME = "web.default";
@@ -12,6 +19,9 @@ async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
   const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
   if (!response.ok) {
+    if (typeof payload.error === "string") {
+      throw new Error(payload.error);
+    }
     const errorCode =
       typeof payload.errorCode === "string" ? payload.errorCode : "RUNTIME_FAILED";
     const guideMessage =
@@ -77,13 +87,20 @@ function splitReplayChunks(text: string): string[] {
   return chunks.length > 0 ? chunks : [text];
 }
 
+function toMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export function App(): JSX.Element {
   const sessionName = useMemo(() => parseSessionNameFromLocation(), []);
   const [sessionId, setSessionId] = useState(sessionName);
   const [snapshot, setSnapshot] = useState<GraphStateSnapshot | null>(null);
   const [inputText, setInputText] = useState("");
   const [clientError, setClientError] = useState("");
+  const [sessionPanelError, setSessionPanelError] = useState("");
+  const [sessions, setSessions] = useState<readonly WebSessionListItemDTO[]>([]);
   const [isDevOverlayVisible, setDevOverlayVisible] = useState(false);
+  const [isSessionInitialized, setSessionInitialized] = useState(false);
   const [replayActive, setReplayActive] = useState(false);
   const [replayTargetIndex, setReplayTargetIndex] = useState<number | null>(null);
   const [replayFullText, setReplayFullText] = useState("");
@@ -158,7 +175,47 @@ export function App(): JSX.Element {
     [abortReplay]
   );
 
+  const refreshSessionList = useCallback(async (currentSessionId: string): Promise<void> => {
+    const result = await jsonFetch<{ sessions: readonly WebSessionListItemDTO[] }>(
+      withSessionQuery("/api/sessions", currentSessionId)
+    );
+    setSessions(result.sessions);
+  }, []);
+
   useEffect(() => {
+    let disposed = false;
+
+    const initialize = async (): Promise<void> => {
+      let nextSessionId = sessionName;
+      try {
+        const initResult = await jsonFetch<{ sessionId: string }>(
+          `/api/session/${encodeURIComponent(sessionName)}/init`
+        );
+        nextSessionId = initResult.sessionId;
+      } catch (error) {
+        if (!disposed) {
+          setClientError(toMessage(error));
+        }
+      }
+
+      if (disposed) {
+        return;
+      }
+      setSessionId(nextSessionId);
+      setSessionInitialized(true);
+    };
+
+    void initialize();
+    return () => {
+      disposed = true;
+    };
+  }, [sessionName]);
+
+  useEffect(() => {
+    if (!isSessionInitialized || sessionId.trim() === "") {
+      return;
+    }
+
     let disposed = false;
 
     const cleanupSse = (): void => {
@@ -172,9 +229,9 @@ export function App(): JSX.Element {
       }
     };
 
-    const connectSse = (nextSessionId: string): void => {
+    const connectSse = (currentSessionId: string): void => {
       cleanupSse();
-      const stream = new EventSource(withSessionQuery("/api/stream", nextSessionId));
+      const stream = new EventSource(withSessionQuery("/api/stream", currentSessionId));
       eventSourceRef.current = stream;
       stream.onmessage = (event) => {
         const parsed = JSON.parse(event.data) as { snapshot?: GraphStateSnapshot };
@@ -187,53 +244,49 @@ export function App(): JSX.Element {
         eventSourceRef.current = null;
         reconnectTimerRef.current = window.setTimeout(() => {
           if (!disposed) {
-            connectSse(nextSessionId);
+            connectSse(currentSessionId);
           }
         }, RETRY_DELAY_MS);
       };
     };
 
-    const init = async (): Promise<void> => {
-      let nextSessionId = sessionName;
-      try {
-        const initResult = await jsonFetch<{ sessionId: string }>(
-          `/api/session/${encodeURIComponent(sessionName)}/init`
-        );
-        nextSessionId = initResult.sessionId;
-      } catch (error) {
-        if (!disposed) {
-          setClientError(error instanceof Error ? error.message : String(error));
-        }
-      }
-
-      if (disposed) return;
-      setSessionId(nextSessionId);
-
+    const syncState = async (): Promise<void> => {
       try {
         const stateResult = await jsonFetch<{ snapshot: GraphStateSnapshot }>(
-          withSessionQuery("/api/state", nextSessionId)
+          withSessionQuery("/api/state", sessionId)
         );
         if (!disposed) {
           setSnapshot(stateResult.snapshot);
         }
       } catch (error) {
         if (!disposed) {
-          setClientError(error instanceof Error ? error.message : String(error));
+          setClientError(toMessage(error));
         }
       }
 
       if (!disposed) {
-        connectSse(nextSessionId);
+        connectSse(sessionId);
       }
     };
 
-    init().catch(() => undefined);
+    void syncState();
+    void refreshSessionList(sessionId).catch((error) => {
+      if (!disposed) {
+        setSessionPanelError(toMessage(error));
+      }
+    });
+
     return () => {
       disposed = true;
       cleanupSse();
-      abortReplay();
     };
-  }, [abortReplay, sessionName]);
+  }, [isSessionInitialized, refreshSessionList, sessionId]);
+
+  useEffect(() => {
+    previousSnapshotRef.current = null;
+    replaySignatureRef.current = null;
+    abortReplay();
+  }, [abortReplay, sessionId]);
 
   useEffect(() => {
     if (!snapshot) {
@@ -254,7 +307,6 @@ export function App(): JSX.Element {
       replaySignatureRef.current = null;
     }
 
-    // Drift hard stop: any new snapshot while replaying must cancel replay immediately.
     if (replayActiveRef.current) {
       abortReplay();
     }
@@ -311,7 +363,7 @@ export function App(): JSX.Element {
     setClientError("");
     try {
       const result = await jsonFetch<{ snapshot: GraphStateSnapshot }>(
-        withSessionQuery("/api/input", sessionId),
+        withSessionQuery("/api/chat", sessionId),
         {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -320,8 +372,9 @@ export function App(): JSX.Element {
       );
       setSnapshot(result.snapshot);
       setInputText("");
+      void refreshSessionList(sessionId).catch(() => undefined);
     } catch (error) {
-      setClientError(error instanceof Error ? error.message : String(error));
+      setClientError(toMessage(error));
     }
   };
 
@@ -338,8 +391,9 @@ export function App(): JSX.Element {
         }
       );
       setSnapshot(result.snapshot);
+      void refreshSessionList(sessionId).catch(() => undefined);
     } catch (error) {
-      setClientError(error instanceof Error ? error.message : String(error));
+      setClientError(toMessage(error));
     }
   };
 
@@ -356,10 +410,75 @@ export function App(): JSX.Element {
         }
       );
       setSnapshot(result.snapshot);
+      void refreshSessionList(sessionId).catch(() => undefined);
     } catch (error) {
-      setClientError(error instanceof Error ? error.message : String(error));
+      setClientError(toMessage(error));
     }
   };
+
+  const handleSessionSwitch = useCallback(
+    async (nextSessionId: string): Promise<void> => {
+      if (!sessionId) {
+        return;
+      }
+      setSessionPanelError("");
+      try {
+        const switched = await jsonFetch<WebSessionSwitchResultDTO>(
+          withSessionQuery("/api/session/switch", sessionId),
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ sessionId: nextSessionId }),
+          }
+        );
+        setSnapshot(null);
+        setSessionId(switched.currentSessionId);
+        await refreshSessionList(switched.currentSessionId);
+      } catch (error) {
+        const message = toMessage(error);
+        setSessionPanelError(message);
+        if (message === "FORBIDDEN" || message === "SESSION_NOT_FOUND") {
+          await refreshSessionList(sessionId).catch(() => undefined);
+        }
+      }
+    },
+    [refreshSessionList, sessionId]
+  );
+
+  const handleSessionDelete = useCallback(
+    async (targetSessionId: string): Promise<void> => {
+      if (!sessionId) {
+        return;
+      }
+      setSessionPanelError("");
+      try {
+        const deleted = await jsonFetch<WebSessionDeleteResultDTO>(
+          withSessionQuery(`/api/session/${encodeURIComponent(targetSessionId)}`, sessionId),
+          {
+            method: "DELETE",
+          }
+        );
+        if (deleted.newActiveSessionId) {
+          setSnapshot(null);
+          setSessionId(deleted.newActiveSessionId);
+          await refreshSessionList(deleted.newActiveSessionId);
+          return;
+        }
+        await refreshSessionList(sessionId);
+      } catch (error) {
+        const message = toMessage(error);
+        if (message === "ENGINE_BUSY") {
+          setSessionPanelError("ENGINE_BUSY");
+        } else {
+          setSessionPanelError(message);
+        }
+        if (message === "FORBIDDEN" || message === "SESSION_NOT_FOUND") {
+          await refreshSessionList(sessionId).catch(() => undefined);
+        }
+      }
+    },
+    [refreshSessionList, sessionId]
+  );
 
   return (
     <main className="app">
@@ -376,6 +495,24 @@ export function App(): JSX.Element {
           </button>
         </div>
       </header>
+
+      <SessionPanel
+        sessions={sessions}
+        currentSessionId={sessionId}
+        isBusy={isBusy}
+        errorMessage={sessionPanelError}
+        onRefresh={() => {
+          void refreshSessionList(sessionId).catch((error) => {
+            setSessionPanelError(toMessage(error));
+          });
+        }}
+        onSwitch={(targetSessionId) => {
+          void handleSessionSwitch(targetSessionId);
+        }}
+        onDelete={(targetSessionId) => {
+          void handleSessionDelete(targetSessionId);
+        }}
+      />
 
       <section className="panel chips">
         <span className="chip">Mode: {snapshot?.mode ?? "UNAVAILABLE"}</span>

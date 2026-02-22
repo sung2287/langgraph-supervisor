@@ -80,6 +80,68 @@ button:disabled {
   font-size: 13px;
 }
 
+.session-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.session-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.session-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.session-item-active .session-select {
+  border-color: #0f766e;
+  background: #ecfeff;
+}
+
+.session-select {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 180px 1fr 180px;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  padding: 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.session-id {
+  font-weight: 600;
+}
+
+.session-preview {
+  color: #334155;
+}
+
+.session-time {
+  color: #64748b;
+  font-size: 12px;
+  justify-self: end;
+}
+
+.session-panel-error {
+  margin-bottom: 10px;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
 textarea {
   width: 100%;
   min-height: 100px;

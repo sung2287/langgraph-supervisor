@@ -1,7 +1,7 @@
 {
   "_note": "DO NOT CHANGE delta_id. Fill human meaning only.",
-  "delta_id": "20260222_113315_66126004",
-  "one_liner": "PRD-015 완료 — Web UI 채팅 타임라인을 말풍선 + Thinking Indicator + 결정론적 Fake Streaming(드리프트 하드 스톱, SSOT 불변)으로 전환.",
+  "delta_id": "20260222_123951_04c3d986",
+  "one_liner": "PRD-016 implemented Session Management Panel with web-only metadata overlay, namespace authority lock, and rename-only safe deletion.",
   "context": [],
   "decisions": [],
   "not_decided": [],
@@ -9,7 +9,7 @@
   "problems": [],
   "risks": [],
   "next_actions": [
-    "PRD-016로 Web UI 세션 UX(세션 목록/삭제/현재 세션 강조) 착수."
+    "Start PRD-017 (if any) or proceed to polish run:web environment (PORT binding guide) and ship UI."
   ],
   "definition_of_done": []
 }
