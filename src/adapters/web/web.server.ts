@@ -351,13 +351,17 @@ export function startWebServer(options: StartWebServerOptions = {}): http.Server
         }
       }
 
-      if (method === "GET" && pathname === "/") {
+      if ((method === "GET" || method === "HEAD") && pathname === "/") {
         const page = htmlPage();
         res.writeHead(200, {
           "content-type": "text/html; charset=utf-8",
           "content-length": String(Buffer.byteLength(page, "utf8")),
         });
-        res.end(page);
+        if (method === "HEAD") {
+          res.end();
+        } else {
+          res.end(page);
+        }
         return;
       }
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { GraphStateSnapshot, HistoryItem } from "../../web.types";
 
-const DEFAULT_SESSION_NAME = "default";
+const DEFAULT_SESSION_NAME = "web.default";
 const RETRY_DELAY_MS = 1500;
 
 async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
@@ -30,20 +30,25 @@ function parseSessionNameFromLocation(): string {
   const params = new URLSearchParams(window.location.search);
   const raw = params.get("session");
   if (typeof raw === "string" && raw.trim() !== "") {
-    return raw;
+    return raw.trim();
   }
   return DEFAULT_SESSION_NAME;
 }
 
+function withSessionQuery(pathname: string, session: string): string {
+  const separator = pathname.includes("?") ? "&" : "?";
+  return `${pathname}${separator}session=${encodeURIComponent(session)}`;
+}
+
 export function App(): JSX.Element {
-  const [sessionId, setSessionId] = useState("");
+  const sessionName = useMemo(() => parseSessionNameFromLocation(), []);
+  const [sessionId, setSessionId] = useState(sessionName);
   const [snapshot, setSnapshot] = useState<GraphStateSnapshot | null>(null);
   const [inputText, setInputText] = useState("");
   const [clientError, setClientError] = useState("");
   const [isDevOverlayVisible, setDevOverlayVisible] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
-  const sessionName = useMemo(() => parseSessionNameFromLocation(), []);
 
   useEffect(() => {
     let disposed = false;
@@ -61,9 +66,7 @@ export function App(): JSX.Element {
 
     const connectSse = (nextSessionId: string): void => {
       cleanupSse();
-      const stream = new EventSource(
-        `/api/stream?session=${encodeURIComponent(nextSessionId)}`
-      );
+      const stream = new EventSource(withSessionQuery("/api/stream", nextSessionId));
       eventSourceRef.current = stream;
       stream.onmessage = (event) => {
         const parsed = JSON.parse(event.data) as { snapshot?: GraphStateSnapshot };
@@ -83,24 +86,36 @@ export function App(): JSX.Element {
     };
 
     const init = async (): Promise<void> => {
+      let nextSessionId = sessionName;
       try {
         const initResult = await jsonFetch<{ sessionId: string }>(
           `/api/session/${encodeURIComponent(sessionName)}/init`
         );
-        if (disposed) return;
-
-        const nextSessionId = initResult.sessionId;
-        setSessionId(nextSessionId);
-        const stateResult = await jsonFetch<{ snapshot: GraphStateSnapshot }>(
-          `/api/state?session=${encodeURIComponent(nextSessionId)}`
-        );
-        if (disposed) return;
-        setSnapshot(stateResult.snapshot);
-        connectSse(nextSessionId);
+        nextSessionId = initResult.sessionId;
       } catch (error) {
         if (!disposed) {
           setClientError(error instanceof Error ? error.message : String(error));
         }
+      }
+
+      if (disposed) return;
+      setSessionId(nextSessionId);
+
+      try {
+        const stateResult = await jsonFetch<{ snapshot: GraphStateSnapshot }>(
+          withSessionQuery("/api/state", nextSessionId)
+        );
+        if (!disposed) {
+          setSnapshot(stateResult.snapshot);
+        }
+      } catch (error) {
+        if (!disposed) {
+          setClientError(error instanceof Error ? error.message : String(error));
+        }
+      }
+
+      if (!disposed) {
+        connectSse(nextSessionId);
       }
     };
 
@@ -113,15 +128,29 @@ export function App(): JSX.Element {
 
   const isBusy = snapshot?.isBusy ?? false;
 
+  if (!snapshot && !clientError) {
+    return (
+      <main className="app">
+        <section className="panel">
+          <h1>LangGraph Observer v2</h1>
+          <p>Loading...</p>
+        </section>
+      </main>
+    );
+  }
+
   const handleSend = async (): Promise<void> => {
     if (!sessionId || isBusy || inputText.trim() === "") return;
     setClientError("");
     try {
-      const result = await jsonFetch<{ snapshot: GraphStateSnapshot }>("/api/input", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ sessionId, text: inputText }),
-      });
+      const result = await jsonFetch<{ snapshot: GraphStateSnapshot }>(
+        withSessionQuery("/api/input", sessionId),
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ sessionId, text: inputText }),
+        }
+      );
       setSnapshot(result.snapshot);
       setInputText("");
     } catch (error) {
@@ -133,11 +162,14 @@ export function App(): JSX.Element {
     if (!sessionId || isBusy) return;
     setClientError("");
     try {
-      const result = await jsonFetch<{ snapshot: GraphStateSnapshot }>("/api/session/reset", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ sessionId }),
-      });
+      const result = await jsonFetch<{ snapshot: GraphStateSnapshot }>(
+        withSessionQuery("/api/session/reset", sessionId),
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ sessionId }),
+        }
+      );
       setSnapshot(result.snapshot);
     } catch (error) {
       setClientError(error instanceof Error ? error.message : String(error));
@@ -148,11 +180,14 @@ export function App(): JSX.Element {
     if (!sessionId || isBusy) return;
     setClientError("");
     try {
-      const result = await jsonFetch<{ snapshot: GraphStateSnapshot }>("/api/rerun", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ sessionId, text: inputText }),
-      });
+      const result = await jsonFetch<{ snapshot: GraphStateSnapshot }>(
+        withSessionQuery("/api/rerun", sessionId),
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ sessionId, text: inputText }),
+        }
+      );
       setSnapshot(result.snapshot);
     } catch (error) {
       setClientError(error instanceof Error ? error.message : String(error));
