@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GraphStateSnapshot, HistoryItem } from "../../web.types";
+import { Timeline } from "./Timeline";
 
 const DEFAULT_SESSION_NAME = "web.default";
 const RETRY_DELAY_MS = 1500;
+const REPLAY_DURATION_TARGET_MS = 1800;
+const REPLAY_DURATION_CAP_MS = 2000;
+const NO_WHITESPACE_CHUNK_SIZE = 4;
 
 async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
@@ -16,14 +20,6 @@ async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
     throw new Error(`${errorCode}: ${guideMessage}: ${message}`);
   }
   return payload as T;
-}
-
-function messageTypeLabel(item: HistoryItem): string {
-  const maybeType = (item as unknown as { type?: unknown }).type;
-  if (typeof maybeType === "string" && maybeType.trim() !== "") {
-    return maybeType;
-  }
-  return "text";
 }
 
 function parseSessionNameFromLocation(): string {
@@ -40,6 +36,47 @@ function withSessionQuery(pathname: string, session: string): string {
   return `${pathname}${separator}session=${encodeURIComponent(session)}`;
 }
 
+function resolveLastAssistant(history: readonly HistoryItem[]): { index: number; content: string } | null {
+  if (history.length < 1) {
+    return null;
+  }
+
+  const candidateIndex = history.length - 1;
+  const candidate = history[candidateIndex];
+  if (candidate?.role === "assistant") {
+    return { index: candidateIndex, content: candidate.content };
+  }
+
+  const fallbackIndex = history.length - 2;
+  if (fallbackIndex < 0) {
+    return null;
+  }
+  const fallback = history[fallbackIndex];
+  if (fallback?.role === "assistant") {
+    return { index: fallbackIndex, content: fallback.content };
+  }
+  return null;
+}
+
+function splitReplayChunks(text: string): string[] {
+  if (text.length === 0) {
+    return [""];
+  }
+
+  if (/\s/.test(text)) {
+    const tokens = text.match(/\S+\s*|\s+/g);
+    if (tokens && tokens.length > 0) {
+      return tokens;
+    }
+  }
+
+  const chunks: string[] = [];
+  for (let index = 0; index < text.length; index += NO_WHITESPACE_CHUNK_SIZE) {
+    chunks.push(text.slice(index, index + NO_WHITESPACE_CHUNK_SIZE));
+  }
+  return chunks.length > 0 ? chunks : [text];
+}
+
 export function App(): JSX.Element {
   const sessionName = useMemo(() => parseSessionNameFromLocation(), []);
   const [sessionId, setSessionId] = useState(sessionName);
@@ -47,8 +84,79 @@ export function App(): JSX.Element {
   const [inputText, setInputText] = useState("");
   const [clientError, setClientError] = useState("");
   const [isDevOverlayVisible, setDevOverlayVisible] = useState(false);
+  const [replayActive, setReplayActive] = useState(false);
+  const [replayTargetIndex, setReplayTargetIndex] = useState<number | null>(null);
+  const [replayFullText, setReplayFullText] = useState("");
+  const [replayVisibleText, setReplayVisibleText] = useState("");
+
+  const previousSnapshotRef = useRef<GraphStateSnapshot | null>(null);
+  const replaySignatureRef = useRef<string | null>(null);
+  const replayAnimationIdRef = useRef<number | null>(null);
+  const replayTokenRef = useRef(0);
+  const replayActiveRef = useRef(false);
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
+
+  const abortReplay = useCallback((): void => {
+    if (replayAnimationIdRef.current !== null) {
+      window.cancelAnimationFrame(replayAnimationIdRef.current);
+      replayAnimationIdRef.current = null;
+    }
+    replayTokenRef.current += 1;
+    replayActiveRef.current = false;
+    setReplayActive(false);
+    setReplayTargetIndex(null);
+    setReplayFullText("");
+    setReplayVisibleText("");
+  }, []);
+
+  const startReplay = useCallback(
+    (targetIndex: number, fullText: string, signature: string): void => {
+      abortReplay();
+      replaySignatureRef.current = signature;
+      replayActiveRef.current = true;
+      setReplayActive(true);
+      setReplayTargetIndex(targetIndex);
+      setReplayFullText(fullText);
+      setReplayVisibleText("");
+
+      const chunks = splitReplayChunks(fullText);
+      const token = replayTokenRef.current + 1;
+      replayTokenRef.current = token;
+
+      const durationMs = Math.min(REPLAY_DURATION_CAP_MS, REPLAY_DURATION_TARGET_MS);
+      const startedAt = performance.now();
+
+      const renderFrame = (timestamp: number): void => {
+        if (replayTokenRef.current !== token) {
+          return;
+        }
+        const elapsed = timestamp - startedAt;
+        const progress = Math.min(1, elapsed / durationMs);
+        const revealCount = Math.max(
+          1,
+          Math.min(chunks.length, Math.ceil(progress * chunks.length))
+        );
+        const visible = chunks.slice(0, revealCount).join("");
+        setReplayVisibleText(visible);
+
+        if (progress >= 1 || revealCount >= chunks.length) {
+          setReplayVisibleText(fullText);
+          setReplayActive(false);
+          replayActiveRef.current = false;
+          setReplayTargetIndex(null);
+          setReplayFullText("");
+          replayAnimationIdRef.current = null;
+          return;
+        }
+
+        replayAnimationIdRef.current = window.requestAnimationFrame(renderFrame);
+      };
+
+      replayAnimationIdRef.current = window.requestAnimationFrame(renderFrame);
+    },
+    [abortReplay]
+  );
 
   useEffect(() => {
     let disposed = false;
@@ -123,10 +231,66 @@ export function App(): JSX.Element {
     return () => {
       disposed = true;
       cleanupSse();
+      abortReplay();
     };
-  }, [sessionName]);
+  }, [abortReplay, sessionName]);
+
+  useEffect(() => {
+    if (!snapshot) {
+      return;
+    }
+
+    const previousSnapshot = previousSnapshotRef.current;
+    previousSnapshotRef.current = snapshot;
+
+    if (!previousSnapshot) {
+      return;
+    }
+
+    if (
+      previousSnapshot.sessionId !== snapshot.sessionId ||
+      snapshot.history.length < previousSnapshot.history.length
+    ) {
+      replaySignatureRef.current = null;
+    }
+
+    // Drift hard stop: any new snapshot while replaying must cancel replay immediately.
+    if (replayActiveRef.current) {
+      abortReplay();
+    }
+
+    if (previousSnapshot.history.length >= snapshot.history.length) {
+      return;
+    }
+    if (snapshot.isBusy) {
+      return;
+    }
+
+    const currentAssistant = resolveLastAssistant(snapshot.history);
+    if (!currentAssistant) {
+      return;
+    }
+    const previousAssistant = resolveLastAssistant(previousSnapshot.history);
+    if (previousAssistant?.content === currentAssistant.content) {
+      return;
+    }
+
+    const signature = `${snapshot.history.length}:${currentAssistant.content}`;
+    if (replaySignatureRef.current === signature) {
+      return;
+    }
+
+    startReplay(currentAssistant.index, currentAssistant.content, signature);
+  }, [abortReplay, snapshot, startReplay]);
 
   const isBusy = snapshot?.isBusy ?? false;
+  const history = snapshot?.history ?? [];
+  const lastItem = history.length > 0 ? history[history.length - 1] : null;
+  const showThinkingIndicator =
+    Boolean(snapshot) &&
+    !snapshot?.lastError &&
+    snapshot?.isBusy === true &&
+    lastItem?.role === "user";
 
   if (!snapshot && !clientError) {
     return (
@@ -141,6 +305,9 @@ export function App(): JSX.Element {
 
   const handleSend = async (): Promise<void> => {
     if (!sessionId || isBusy || inputText.trim() === "") return;
+    if (replayActiveRef.current) {
+      abortReplay();
+    }
     setClientError("");
     try {
       const result = await jsonFetch<{ snapshot: GraphStateSnapshot }>(
@@ -249,17 +416,15 @@ export function App(): JSX.Element {
 
       <section className="panel">
         <h2>Timeline</h2>
-        <ul className="timeline">
-          {(snapshot?.history ?? []).map((item, index) => (
-            <li key={`${item.role}-${index}`} className="timeline-item">
-              <div className="meta">
-                <strong>{item.role}</strong>
-                <span className="type-tag">{messageTypeLabel(item)}</span>
-              </div>
-              <pre>{item.content}</pre>
-            </li>
-          ))}
-        </ul>
+        <Timeline
+          history={history}
+          replayActive={replayActive}
+          replayTargetIndex={replayTargetIndex}
+          replayFullText={replayFullText}
+          replayVisibleText={replayVisibleText}
+          showThinkingIndicator={showThinkingIndicator}
+          currentStepLabel={snapshot?.currentStepLabel}
+        />
       </section>
 
       {(snapshot?.lastError || clientError) ? (

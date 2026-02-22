@@ -1,7 +1,7 @@
 {
   "_note": "DO NOT CHANGE delta_id. Fill human meaning only.",
-  "delta_id": "20260222_092210_1ed23254",
-  "one_liner": "PRD-014 완료 — React UI를 /v2로 병행 서빙하고 Vite dev-proxy + single-port prod 파이프라인을 구축했으며 Snapshot projection-only/Server SSOT/DTO 격리를 유지했다.",
+  "delta_id": "20260222_113315_66126004",
+  "one_liner": "PRD-015 완료 — Web UI 채팅 타임라인을 말풍선 + Thinking Indicator + 결정론적 Fake Streaming(드리프트 하드 스톱, SSOT 불변)으로 전환.",
   "context": [],
   "decisions": [],
   "not_decided": [],
@@ -9,7 +9,7 @@
   "problems": [],
   "risks": [],
   "next_actions": [
-    "PRD-015(메시지 렌더/UI 컴포넌트) 착수 전, /v2에서 기본 채팅 1턴+reset+rerun 시나리오를 실제 환경(포트 우회 포함)에서 스모크로 캡처한다."
+    "PRD-016로 Web UI 세션 UX(세션 목록/삭제/현재 세션 강조) 착수."
   ],
   "definition_of_done": []
 }
