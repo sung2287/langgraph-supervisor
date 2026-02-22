@@ -1,7 +1,7 @@
 {
   "_note": "DO NOT CHANGE delta_id. Fill human meaning only.",
-  "delta_id": "20260222_061750_05aec94f",
-  "one_liner": "PRD-012: provider/model override UX 기반을 위해 canonicalization SSOT를 router로 일원화하고, SESSION_STATE_HASH_MISMATCH 시 --fresh-session/--session 가이드를 추가했다.",
+  "delta_id": "20260222_070604_56766335",
+  "one_liner": "PRD-013 minimal web observer v1 — local-only Web adapter (REST+SSE) with unified runtime entry, web session namespace isolation, in-flight single-writer guard, hash-mismatch guide UX, and safe snapshot DTO projection.",
   "context": [],
   "decisions": [],
   "not_decided": [],
@@ -9,7 +9,7 @@
   "problems": [],
   "risks": [],
   "next_actions": [
-    "PRD-013 Minimal Web UI에서 동일 precedence(UI>CLI>Env>Policy)로 metadata를 전달하고, HashMismatch 가이드 UX를 버튼/토스트로 노출한다."
+    "Run real-machine web smoke (run:web) + 30-minute usability checklist (init/state/input/rerun/reset, hash-mismatch, concurrent submit) and log any UX frictions as follow-up issues."
   ],
   "definition_of_done": []
 }
