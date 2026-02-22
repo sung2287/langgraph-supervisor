@@ -16,7 +16,7 @@ import { resolveProviderConfig } from "../llm/provider.router";
 import { createLLMClientFromProviderConfig } from "../llm/provider.client";
 import { ConfigurationError as LlmConfigurationError } from "../llm/errors";
 import { ConfigurationError as PolicyConfigurationError } from "../../src/policy/interpreter/policy.errors";
-import { FileSecretManager, resolveProviderHint } from "../secrets/secret.manager";
+import { FileSecretManager } from "../secrets/secret.manager";
 import type { PolicyRef } from "../../src/core/plan/plan.types";
 
 const GLOBAL_HASH_DOMAIN = "global";
@@ -46,6 +46,10 @@ function sanitizeSessionName(raw: string): string {
   return trimmed.replace(/[^A-Za-z0-9._-]/g, "_");
 }
 
+function isSessionHashMismatchError(error: unknown): error is Error {
+  return error instanceof Error && error.message.startsWith("SESSION_STATE_HASH_MISMATCH");
+}
+
 const {
   input,
   repoPath,
@@ -69,11 +73,10 @@ const sessionFilename =
 try {
   const secretManager = new FileSecretManager();
   const loadedSecretProfile = await secretManager.loadProfile(secretProfile);
-  const providerHint = resolveProviderHint(provider, process.env.LLM_PROVIDER);
-  const injectionEnv = secretManager.getInjectionEnv(loadedSecretProfile, providerHint);
+  const preValidationEnv = secretManager.getInjectionEnv(loadedSecretProfile);
   const providerResolutionEnv = {
     ...process.env,
-    ...injectionEnv,
+    ...preValidationEnv,
   };
 
   const providerConfig = resolveProviderConfig(
@@ -85,7 +88,12 @@ try {
     },
     providerResolutionEnv
   );
-  const llm = createLLMClientFromProviderConfig(providerConfig, providerResolutionEnv);
+  const injectionEnv = secretManager.getInjectionEnv(loadedSecretProfile, providerConfig.provider);
+  const providerRuntimeEnv = {
+    ...process.env,
+    ...injectionEnv,
+  };
+  const llm = createLLMClientFromProviderConfig(providerConfig, providerRuntimeEnv);
   console.log(
     `mode=local repoPath=${repoPath} phase=${phase} profile=${profile} secretProfile=${secretProfile} provider=${providerConfig.provider} model=${providerConfig.model ?? "DEFAULT"}`
   );
@@ -178,6 +186,11 @@ try {
     process.exitCode = 1;
   } else if (error instanceof FailFastError) {
     console.error(`run:local fail-fast: ${error.message}`);
+    process.exitCode = 1;
+  } else if (isSessionHashMismatchError(error)) {
+    console.error("Session hash mismatch: your provider/model/mode/domain changed.");
+    console.error("Re-run with --fresh-session OR use a new --session <name>.");
+    console.error(`run:local failed: ${error.message}`);
     process.exitCode = 1;
   } else {
     const message = error instanceof Error ? error.message : String(error);

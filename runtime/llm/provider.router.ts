@@ -31,6 +31,18 @@ function parseProvider(value: string): ProviderId {
   );
 }
 
+export function canonicalizeProviderForStorage(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    throw new ConfigurationError("CONFIGURATION_ERROR provider must be non-empty");
+  }
+  try {
+    return parseProvider(trimmed);
+  } catch {
+    return trimmed;
+  }
+}
+
 function parseIntegerOption(value: unknown, field: string): number | undefined {
   if (typeof value === "undefined") {
     return undefined;
