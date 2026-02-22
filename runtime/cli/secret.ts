@@ -42,9 +42,7 @@ export async function runSecretCli(
   });
 
   io.log(
-    `secret set completed profile=${profile.trim()} provider=${provider
-      .trim()
-      .toLowerCase()} apiKey=${redactSecretValue(apiKey)} path=${manager.getSecretsFilePath()}`
+    `secret set completed profile=${profile.trim()} provider=${provider.trim()} apiKey=${redactSecretValue(apiKey)} path=${manager.getSecretsFilePath()}`
   );
   return 0;
 }

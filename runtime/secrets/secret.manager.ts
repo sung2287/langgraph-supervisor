@@ -1,6 +1,9 @@
 import fs from "node:fs/promises";
 import { ConfigurationError } from "../llm/errors";
-import type { ProviderResolutionEnv } from "../llm/provider.router";
+import {
+  canonicalizeProviderForStorage,
+  type ProviderResolutionEnv,
+} from "../llm/provider.router";
 import { writeFileAtomically } from "./secret.atomic_write";
 import { resolveSecretsFilePath } from "./secret.paths";
 import type { SecretProfile, SecretProviderEntry, SecretStore } from "./secret.schema";
@@ -46,8 +49,16 @@ function assertName(name: string, fieldName: string): string {
   return trimmed;
 }
 
-function normalizeProviderName(providerName: string): string {
-  return assertName(providerName, "provider").toLowerCase();
+function assertRawName(name: string, fieldName: string): string {
+  if (name === "") {
+    throw new ConfigurationError(`CONFIGURATION_ERROR ${fieldName} must be non-empty`);
+  }
+  if (!NAME_PATTERN.test(name)) {
+    throw new ConfigurationError(
+      `CONFIGURATION_ERROR ${fieldName} must match pattern ^[a-zA-Z0-9_-]+$`
+    );
+  }
+  return name;
 }
 
 function cloneStore(store: SecretStore): Record<string, { providers: Record<string, SecretProviderEntry> }> {
@@ -64,8 +75,7 @@ function normalizeProviderHint(value: string | undefined): string | undefined {
   if (typeof value !== "string") {
     return undefined;
   }
-  const trimmed = value.trim().toLowerCase();
-  return trimmed === "" ? undefined : trimmed;
+  return value === "" ? undefined : value;
 }
 
 export class FileSecretManager implements ISecretManager {
@@ -137,7 +147,9 @@ export class FileSecretManager implements ISecretManager {
 
   async setSecret(input: SetSecretInput): Promise<void> {
     const profileName = assertName(input.profileName, "profile");
-    const providerName = normalizeProviderName(input.providerName);
+    const providerName = canonicalizeProviderForStorage(
+      assertRawName(input.providerName, "provider")
+    );
     const apiKey = toTrimmedNonEmpty(input.apiKey, "apiKey");
 
     const existing = await this.readSecretStore({ allowMissing: true });
@@ -185,13 +197,6 @@ export class FileSecretManager implements ISecretManager {
 
     return validateSecretStore(parsed);
   }
-}
-
-export function resolveProviderHint(
-  argsProvider: string | undefined,
-  envProvider: string | undefined
-): string | undefined {
-  return normalizeProviderHint(argsProvider) ?? normalizeProviderHint(envProvider);
 }
 
 export function getSecretSetGuide(): string {

@@ -100,16 +100,16 @@ export function parseRunLocalArgs(argv: string[]): RunLocalArgs {
     }
     if (token === "--provider") {
       const next = argv[i + 1];
-      if (typeof next === "string" && next.trim() !== "") {
-        providerFromFlag = next.trim();
+      if (typeof next === "string" && next !== "") {
+        providerFromFlag = next;
         i += 1;
         continue;
       }
     }
     if (token === "--model") {
       const next = argv[i + 1];
-      if (typeof next === "string" && next.trim() !== "") {
-        modelFromFlag = next.trim();
+      if (typeof next === "string" && next !== "") {
+        modelFromFlag = next;
         i += 1;
         continue;
       }
