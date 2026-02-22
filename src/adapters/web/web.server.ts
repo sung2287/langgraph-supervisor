@@ -1,4 +1,6 @@
 import http, { type IncomingMessage, type ServerResponse } from "node:http";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { URL } from "node:url";
 import { RuntimeError, toRuntimeError } from "../../../runtime/error";
 import { buildWebSessionId } from "../../../runtime/orchestrator/session_namespace";
@@ -18,6 +20,15 @@ interface JsonObject {
 
 const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_PORT = 3000;
+const DEFAULT_UI_DIST_REL_PATH = path.join("dist", "ui");
+
+function resolveUiDistPath(): string {
+  const override = process.env.UI_DIST_DIR;
+  if (typeof override === "string" && override.trim() !== "") {
+    return path.resolve(override);
+  }
+  return path.resolve(process.cwd(), DEFAULT_UI_DIST_REL_PATH);
+}
 
 function toPort(raw: string | undefined): number {
   const parsed = Number(raw);
@@ -45,6 +56,73 @@ function sendText(res: ServerResponse, statusCode: number, payload: string): voi
     "cache-control": "no-store",
   });
   res.end(body);
+}
+
+function contentTypeByPath(filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === ".html") return "text/html; charset=utf-8";
+  if (ext === ".js") return "application/javascript; charset=utf-8";
+  if (ext === ".css") return "text/css; charset=utf-8";
+  if (ext === ".json") return "application/json; charset=utf-8";
+  if (ext === ".svg") return "image/svg+xml";
+  if (ext === ".png") return "image/png";
+  if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
+  if (ext === ".ico") return "image/x-icon";
+  return "application/octet-stream";
+}
+
+async function sendStaticFile(
+  res: ServerResponse,
+  filePath: string,
+  options: { readonly cacheControl?: string } = {}
+): Promise<boolean> {
+  try {
+    const data = await fs.readFile(filePath);
+    res.writeHead(200, {
+      "content-type": contentTypeByPath(filePath),
+      "content-length": String(data.length),
+      "cache-control": options.cacheControl ?? "public, max-age=60",
+    });
+    res.end(data);
+    return true;
+  } catch (error) {
+    const nodeError = error as NodeJS.ErrnoException;
+    if (nodeError?.code === "ENOENT") {
+      return false;
+    }
+    throw error;
+  }
+}
+
+async function tryServeV2Asset(
+  res: ServerResponse,
+  pathname: string,
+  uiDistRoot: string
+): Promise<boolean> {
+  if (!(pathname === "/v2" || pathname === "/v2/" || pathname.startsWith("/v2/"))) {
+    return false;
+  }
+
+  const relative = pathname.startsWith("/v2/")
+    ? pathname.slice("/v2/".length)
+    : "";
+  const candidate = relative === "" ? "index.html" : relative;
+  const normalized = path.normalize(candidate).replace(/^(\.\.(\/|\\|$))+/, "");
+  const candidatePath = path.resolve(uiDistRoot, normalized);
+  if (!candidatePath.startsWith(`${uiDistRoot}${path.sep}`) && candidatePath !== uiDistRoot) {
+    return false;
+  }
+
+  const served = await sendStaticFile(res, candidatePath);
+  if (served) {
+    return true;
+  }
+
+  if (pathname === "/v2" || pathname === "/v2/" || pathname.startsWith("/v2/")) {
+    const fallback = path.resolve(uiDistRoot, "index.html");
+    return sendStaticFile(res, fallback, { cacheControl: "no-store" });
+  }
+  return false;
 }
 
 async function readJsonBody(req: IncomingMessage): Promise<JsonObject> {
@@ -257,6 +335,7 @@ export function startWebServer(options: StartWebServerOptions = {}): http.Server
 
   const adapter =
     options.adapter ?? new LocalWebRuntimeAdapter({ repoPath: options.repoPath ?? process.cwd() });
+  const uiDistRoot = resolveUiDistPath();
 
   const server = http.createServer(async (req, res) => {
     try {
@@ -264,6 +343,13 @@ export function startWebServer(options: StartWebServerOptions = {}): http.Server
       const origin = `http://${req.headers.host ?? "localhost"}`;
       const requestUrl = new URL(req.url ?? "/", origin);
       const pathname = requestUrl.pathname;
+
+      if (method === "GET") {
+        const servedV2 = await tryServeV2Asset(res, pathname, uiDistRoot);
+        if (servedV2) {
+          return;
+        }
+      }
 
       if (method === "GET" && pathname === "/") {
         const page = htmlPage();

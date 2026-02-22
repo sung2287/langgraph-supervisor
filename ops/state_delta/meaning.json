@@ -1,7 +1,7 @@
 {
   "_note": "DO NOT CHANGE delta_id. Fill human meaning only.",
-  "delta_id": "20260222_070604_56766335",
-  "one_liner": "PRD-013 minimal web observer v1 — local-only Web adapter (REST+SSE) with unified runtime entry, web session namespace isolation, in-flight single-writer guard, hash-mismatch guide UX, and safe snapshot DTO projection.",
+  "delta_id": "20260222_092210_1ed23254",
+  "one_liner": "PRD-014 완료 — React UI를 /v2로 병행 서빙하고 Vite dev-proxy + single-port prod 파이프라인을 구축했으며 Snapshot projection-only/Server SSOT/DTO 격리를 유지했다.",
   "context": [],
   "decisions": [],
   "not_decided": [],
@@ -9,7 +9,7 @@
   "problems": [],
   "risks": [],
   "next_actions": [
-    "Run real-machine web smoke (run:web) + 30-minute usability checklist (init/state/input/rerun/reset, hash-mismatch, concurrent submit) and log any UX frictions as follow-up issues."
+    "PRD-015(메시지 렌더/UI 컴포넌트) 착수 전, /v2에서 기본 채팅 1턴+reset+rerun 시나리오를 실제 환경(포트 우회 포함)에서 스모크로 캡처한다."
   ],
   "definition_of_done": []
 }
