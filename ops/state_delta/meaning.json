@@ -1,13 +1,15 @@
 {
   "_note": "DO NOT CHANGE delta_id. Fill human meaning only.",
-  "delta_id": "20260221_144947_73d544b9",
-  "one_liner": "PRD-006 완료 — Domain(currentDomain)은 CLI 초기 주입 + setDomain 전용 Step으로만 변경/영속되며 RetrieveDecisionContext는 read-only; Anchor 저장은 AnchorPort로 추상화되어 Handler가 무결성 검증 후 저장하고 Storage는 Passive 경계를 유지함.",
+  "delta_id": "20260222_045511_561e021d",
+  "one_liner": "PRD-011 Secret Injection UX implemented (home-scoped secrets.json, secret CLI, adapter-level injection env, fail-fast config errors, tests).",
   "context": [],
   "decisions": [],
   "not_decided": [],
   "rationale": [],
   "problems": [],
   "risks": [],
-  "next_actions": [],
+  "next_actions": [
+    "Start PRD-012 Provider/Model Override UX on a new branch."
+  ],
   "definition_of_done": []
 }
