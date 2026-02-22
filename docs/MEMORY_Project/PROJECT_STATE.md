@@ -6,14 +6,14 @@
 - state_version: 2
 - last_updated: 2026-02-22
 - updated_by: human
-- update_reason: close PRD-011
-- latest_delta_id: 20260222_045511_561e021d
+- update_reason: close prd-012a
+- latest_delta_id: 20260222_060210_954bc13a
 - git_base: origin/main
-- git_merge_base: 2796092225fcad5ac74c994722747f3854b230fe
-- git_head: deaca37dd3cb790e62dc932db0091de7953d51ed
-- git_head_short: deaca37
-- git_branch: prd-011-secret-injection-ux
-- changed_files_sha256: 49c69966c9ce4c236e79d875e2b1da6d387d2c66b096e21bdb31c485c13e1d0b
+- git_merge_base: 61c4c4abb9a6756e90ae51fc252a48ec3268685b
+- git_head: a2165ddbc2e841ef32963658fb99d909fa2bee6b
+- git_head_short: a2165dd
+- git_branch: prd-012a-deterministic-domain-hash
+- changed_files_sha256: 3aeec8af2880d11a6824f9d1998b671981b1aac0488a0e1649740bceba34d3b5
 - typecheck_exit_code: 0
 - test_exit_code: 0
 
@@ -39,7 +39,7 @@
 - naming_rule: ABCD File Naming (LOCKED)
 
 ## Current Scope (Approved/Done)
-- prd_done: [PRD-002, PRD-001, PRD-003, PRD-004, PRD-007, prd-006, prd-005, prd-009, prd-008, PRD-010, PRD-011]
+- prd_done: [PRD-002, PRD-001, PRD-003, PRD-004, PRD-007, prd-006, prd-005, prd-009, prd-008, PRD-010, PRD-011, prd-012a]
 - core_promoted:
   - PRD-001 (Create)
 - core_status: Partial; non-TOC core files removed during cleanup, recovery in progress

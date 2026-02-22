@@ -1,9 +1,11 @@
 {
-  "latest_delta_id": null,
-  "latest_prd_id": null,
-  "updated_at": null,
   "delta_id": "20260222_060210_954bc13a",
   "generated_at": "2026-02-22T06:02:10.172Z",
+  "scope": {
+    "prd_done_add": [
+      "prd-012a"
+    ]
+  },
   "meta": {
     "update_reason": "close prd-012a",
     "git": {
@@ -22,21 +24,5 @@
   "build": {
     "typecheck": "PASS",
     "test": "PASS"
-  },
-  "scope": {
-    "prd_done_add": [
-      "PRD-002",
-      "PRD-001",
-      "PRD-003",
-      "PRD-004",
-      "PRD-007",
-      "prd-006",
-      "prd-005",
-      "prd-009",
-      "prd-008",
-      "PRD-010",
-      "PRD-011",
-      "prd-012a"
-    ]
   }
 }
