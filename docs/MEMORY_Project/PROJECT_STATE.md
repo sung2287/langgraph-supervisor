@@ -4,16 +4,16 @@
 ## Meta
 - project: 저작관리시스템
 - state_version: 2
-- last_updated: 2026-02-21
+- last_updated: 2026-02-22
 - updated_by: human
-- update_reason: close prd-006
-- latest_delta_id: 20260221_144947_73d544b9
+- update_reason: close PRD-011
+- latest_delta_id: 20260222_045511_561e021d
 - git_base: origin/main
-- git_merge_base: e6b39df81db88368104b520a65c2ab743db6b79f
-- git_head: 9513de759eeffe66ea9f52838c83b8936d9f38d7
-- git_head_short: 9513de7
-- git_branch: prd-006-domain-anchor-impl
-- changed_files_sha256: 193fdcac202876b4376bf200850d0f4fd556836d1cd2fe9ef7b9cf59088da767
+- git_merge_base: 2796092225fcad5ac74c994722747f3854b230fe
+- git_head: deaca37dd3cb790e62dc932db0091de7953d51ed
+- git_head_short: deaca37
+- git_branch: prd-011-secret-injection-ux
+- changed_files_sha256: 49c69966c9ce4c236e79d875e2b1da6d387d2c66b096e21bdb31c485c13e1d0b
 - typecheck_exit_code: 0
 - test_exit_code: 0
 
@@ -39,7 +39,7 @@
 - naming_rule: ABCD File Naming (LOCKED)
 
 ## Current Scope (Approved/Done)
-- prd_done: [PRD-002, PRD-001, PRD-003, PRD-004, PRD-007, prd-006, prd-005, prd-009, prd-008, PRD-010]
+- prd_done: [PRD-002, PRD-001, PRD-003, PRD-004, PRD-007, prd-006, prd-005, prd-009, prd-008, PRD-010, PRD-011]
 - core_promoted:
   - PRD-001 (Create)
 - core_status: Partial; non-TOC core files removed during cleanup, recovery in progress

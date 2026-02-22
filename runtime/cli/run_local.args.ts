@@ -3,6 +3,7 @@ export interface RunLocalArgs {
   projectId: string;
   repoPath: string;
   profile: string;
+  secretProfile: string;
   phase: string;
   currentDomain?: string;
   freshSession: boolean;
@@ -31,6 +32,7 @@ export function parseRunLocalArgs(argv: string[]): RunLocalArgs {
   let repoPathFromFlag: string | undefined;
   let profileFromFlag: string | undefined;
   let phaseFromFlag: string | undefined;
+  let secretProfileFromFlag: string | undefined;
   let currentDomainFromFlag: string | undefined;
   let freshSessionFromFlag = false;
   let sessionFromFlag: string | undefined;
@@ -64,6 +66,14 @@ export function parseRunLocalArgs(argv: string[]): RunLocalArgs {
       const next = argv[i + 1];
       if (typeof next === "string" && next.trim() !== "") {
         phaseFromFlag = next.trim();
+        i += 1;
+        continue;
+      }
+    }
+    if (token === "--secret-profile") {
+      const next = argv[i + 1];
+      if (typeof next === "string" && next.trim() !== "") {
+        secretProfileFromFlag = next.trim();
         i += 1;
         continue;
       }
@@ -133,6 +143,7 @@ export function parseRunLocalArgs(argv: string[]): RunLocalArgs {
   const projectId = positional[1] ?? "default";
   const repoPath = repoPathFromFlag ?? process.cwd();
   const profile = profileFromFlag ?? "default";
+  const secretProfile = secretProfileFromFlag ?? "default";
   const phase = normalizePhase(phaseFromFlag);
 
   return {
@@ -140,6 +151,7 @@ export function parseRunLocalArgs(argv: string[]): RunLocalArgs {
     projectId,
     repoPath,
     profile,
+    secretProfile,
     phase,
     currentDomain: currentDomainFromFlag,
     freshSession: freshSessionFromFlag,

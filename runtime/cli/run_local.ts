@@ -16,6 +16,7 @@ import { resolveProviderConfig } from "../llm/provider.router";
 import { createLLMClientFromProviderConfig } from "../llm/provider.client";
 import { ConfigurationError as LlmConfigurationError } from "../llm/errors";
 import { ConfigurationError as PolicyConfigurationError } from "../../src/policy/interpreter/policy.errors";
+import { FileSecretManager, resolveProviderHint } from "../secrets/secret.manager";
 
 function sanitizeSessionName(raw: string): string {
   const trimmed = raw.trim();
@@ -31,6 +32,7 @@ const {
   phase,
   currentDomain,
   profile,
+  secretProfile,
   freshSession,
   session,
   provider,
@@ -45,6 +47,15 @@ const sessionFilename =
     : "session_state.json";
 
 try {
+  const secretManager = new FileSecretManager();
+  const loadedSecretProfile = await secretManager.loadProfile(secretProfile);
+  const providerHint = resolveProviderHint(provider, process.env.LLM_PROVIDER);
+  const injectionEnv = secretManager.getInjectionEnv(loadedSecretProfile, providerHint);
+  const providerResolutionEnv = {
+    ...process.env,
+    ...injectionEnv,
+  };
+
   const providerConfig = resolveProviderConfig(
     {
       provider,
@@ -52,11 +63,11 @@ try {
       timeoutMs,
       maxAttempts,
     },
-    process.env
+    providerResolutionEnv
   );
-  const llm = createLLMClientFromProviderConfig(providerConfig, process.env);
+  const llm = createLLMClientFromProviderConfig(providerConfig, providerResolutionEnv);
   console.log(
-    `mode=local repoPath=${repoPath} phase=${phase} profile=${profile} provider=${providerConfig.provider} model=${providerConfig.model ?? "DEFAULT"}`
+    `mode=local repoPath=${repoPath} phase=${phase} profile=${profile} secretProfile=${secretProfile} provider=${providerConfig.provider} model=${providerConfig.model ?? "DEFAULT"}`
   );
 
   const interpreter = new PolicyInterpreter({
