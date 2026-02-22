@@ -55,18 +55,16 @@ UI MUST NOT:
 All animation state MUST remain volatile and local to the React component.
 
 ## Implementation Defaults (Non-LOCK)
+These defaults MUST NOT override any LOCK sections defined above.
 These values are implementation defaults for PRD-015. They are not contractual locks and may be tuned without changing authority rules.
 
 - Chunking: `word` (split by whitespace; fallback to fixed chunk if no whitespace)
-- Duration Target: `1800ms` (cap remains 2000ms)
+- Duration Target: 1800ms
+- Hard Cap (LOCK reference): MUST NOT exceed 2000ms
 - Last Assistant Detection:
   - candidate = `history[history.length - 1]`
   - if candidate.role !== "assistant", use `history[history.length - 2]` as fallback
   - “new assistant message” detection relies on structural comparison of assistant `content` only (no client-generated IDs)
-
-- **Chunking**: 개별 글자 단위보다 단어/청크 단위 노출을 권장한다.
-- **Duration Cap**: 전체 재생 시간은 최대 1500ms~2000ms를 초과하지 않도록 보정한다.
-- **Safety**: 재생 중 내용이 변경되거나 강제 리셋이 감지되면 즉시 애니메이션을 중단하고 서버 데이터로 동기화한다.
 
 ## 8. No Client Identity Rule (LOCK)
 - UI MUST NOT generate or persist artificial message IDs for authoritative comparison.
