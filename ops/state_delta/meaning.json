@@ -1,7 +1,7 @@
 {
   "_note": "DO NOT CHANGE delta_id. Fill human meaning only.",
-  "delta_id": "20260222_045511_561e021d",
-  "one_liner": "PRD-011 Secret Injection UX implemented (home-scoped secrets.json, secret CLI, adapter-level injection env, fail-fast config errors, tests).",
+  "delta_id": "20260222_060210_954bc13a",
+  "one_liner": "PRD-012A 완료 — plan hash를 stableStringify 기반 결정론으로 고정하고 provider/model/mode/domain 메타데이터를 포함해 domain-aware 세션 무결성을 강화함.",
   "context": [],
   "decisions": [],
   "not_decided": [],
@@ -9,7 +9,7 @@
   "problems": [],
   "risks": [],
   "next_actions": [
-    "Start PRD-012 Provider/Model Override UX on a new branch."
+    "PRD-012(Override UX) 구현 착수 — UI/CLI precedence 및 secret-profile 주입 UX를 PRD-010/012A 해시 규칙에 맞춰 정합화."
   ],
   "definition_of_done": []
 }

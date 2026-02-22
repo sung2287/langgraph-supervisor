@@ -17,6 +17,26 @@ import { createLLMClientFromProviderConfig } from "../llm/provider.client";
 import { ConfigurationError as LlmConfigurationError } from "../llm/errors";
 import { ConfigurationError as PolicyConfigurationError } from "../../src/policy/interpreter/policy.errors";
 import { FileSecretManager, resolveProviderHint } from "../secrets/secret.manager";
+import type { PolicyRef } from "../../src/core/plan/plan.types";
+
+const GLOBAL_HASH_DOMAIN = "global";
+const DEFAULT_HASH_MODEL = "DEFAULT";
+
+function resolveHashMode(policyRef: PolicyRef, fallbackMode: string): string {
+  const modeLabel = (policyRef as { modeLabel?: unknown }).modeLabel;
+  if (typeof modeLabel === "string" && modeLabel.trim() !== "") {
+    return modeLabel;
+  }
+  return fallbackMode;
+}
+
+function resolveHashDomain(currentDomain: string | undefined): string {
+  if (typeof currentDomain !== "string") {
+    return GLOBAL_HASH_DOMAIN;
+  }
+  const trimmed = currentDomain.trim();
+  return trimmed === "" ? GLOBAL_HASH_DOMAIN : trimmed;
+}
 
 function sanitizeSessionName(raw: string): string {
   const trimmed = raw.trim();
@@ -83,9 +103,17 @@ try {
   const docBundleRefs = bundles.flatMap((bundle) => bundle.files);
   const executionPlan = toCoreExecutionPlan(resolvedPlan);
   const policyRef = toPolicyRef(resolvedPlan, docBundleRefs);
+  const hashMetadata = {
+    provider: providerConfig.provider,
+    model: providerConfig.model ?? DEFAULT_HASH_MODEL,
+    mode: resolveHashMode(policyRef, resolvedPlan.metadata.mode),
+    domain: resolveHashDomain(currentDomain),
+  } as const;
+  // Breaking change (PRD-012A): legacy session_state hashes will mismatch; use --fresh-session.
   const expectedHash = computeExecutionPlanHash({
     executionPlan,
     policyRef,
+    metadata: hashMetadata,
   });
 
   const sessionStore = new FileSessionStore(repoPath, {

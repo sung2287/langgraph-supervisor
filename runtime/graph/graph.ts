@@ -2,6 +2,7 @@ import { Annotation, END, StateGraph } from "@langchain/langgraph";
 import { executePlan } from "../../src/core/plan/plan.executor";
 import type {
   ExecutionPlan as CoreExecutionPlan,
+  ExecutionPlanV1 as CoreExecutionPlanV1,
   GraphState as CoreGraphState,
   PlanExecutorDeps,
   PolicyRef,
@@ -55,14 +56,22 @@ export function toCoreExecutionPlan(plan: NormalizedExecutionPlan): CoreExecutio
     throw new Error("PLAN_NORMALIZATION_ERROR metadata.policyProfile must be provided");
   }
 
+  const metadata: CoreExecutionPlanV1["metadata"] =
+    typeof plan.metadata.topK === "number"
+      ? {
+        policyProfile,
+        mode,
+        topK: plan.metadata.topK,
+      }
+      : {
+        policyProfile,
+        mode,
+      };
+
   return {
     step_contract_version: plan.step_contract_version,
     extensions: [],
-    metadata: {
-      topK: plan.metadata.topK,
-      policyProfile,
-      mode,
-    },
+    metadata,
     steps: plan.steps.map((step) => ({
       id: step.id,
       type: step.type,
