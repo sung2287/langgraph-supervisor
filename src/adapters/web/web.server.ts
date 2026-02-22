@@ -4,7 +4,7 @@ import path from "node:path";
 import { URL } from "node:url";
 import { RuntimeError, toRuntimeError } from "../../../runtime/error";
 import { buildWebSessionId } from "../../../runtime/orchestrator/session_namespace";
-import { LocalWebRuntimeAdapter } from "./web.runtime_adapter";
+import { LocalWebRuntimeAdapter, WebSessionApiError } from "./web.runtime_adapter";
 import type { GraphStateSnapshot, IWebRuntimeAdapter } from "./web.types";
 
 interface StartWebServerOptions {
@@ -56,6 +56,14 @@ function sendText(res: ServerResponse, statusCode: number, payload: string): voi
     "cache-control": "no-store",
   });
   res.end(body);
+}
+
+function sendApiError(
+  res: ServerResponse,
+  statusCode: number,
+  errorCode: "BAD_REQUEST" | "FORBIDDEN" | "SESSION_NOT_FOUND" | "ENGINE_BUSY"
+): void {
+  sendJson(res, statusCode, { error: errorCode });
 }
 
 function contentTypeByPath(filePath: string): string {
@@ -382,6 +390,13 @@ export function startWebServer(options: StartWebServerOptions = {}): http.Server
         return;
       }
 
+      if (method === "GET" && pathname === "/api/sessions") {
+        const sessionHint = requestUrl.searchParams.get("session") ?? undefined;
+        const sessions = await adapter.listWebSessions(sessionHint);
+        sendJson(res, 200, { sessions });
+        return;
+      }
+
       if (method === "GET" && pathname === "/api/stream") {
         const sessionId = extractSessionId(requestUrl.searchParams.get("session"));
         res.writeHead(200, {
@@ -405,12 +420,43 @@ export function startWebServer(options: StartWebServerOptions = {}): http.Server
         return;
       }
 
-      if (method === "POST" && pathname === "/api/input") {
+      if (method === "POST" && pathname === "/api/session/switch") {
         const body = await readJsonBody(req);
+        if (typeof body.sessionId !== "string") {
+          sendApiError(res, 400, "BAD_REQUEST");
+          return;
+        }
+        const result = await adapter.switchWebSession(body.sessionId);
+        sendJson(res, 200, result as unknown as JsonObject);
+        return;
+      }
+
+      if (method === "DELETE" && /^\/api\/session\/[^/]+$/.test(pathname)) {
+        const rawId = decodeURIComponent(pathname.split("/")[3] ?? "");
+        if (rawId.trim() === "") {
+          sendApiError(res, 400, "BAD_REQUEST");
+          return;
+        }
+        const result = await adapter.deleteWebSession(rawId);
+        sendJson(res, 200, result as unknown as JsonObject);
+        return;
+      }
+
+      if (method === "POST" && (pathname === "/api/input" || pathname === "/api/chat")) {
+        const body = await readJsonBody(req);
+        const querySession = requestUrl.searchParams.get("session");
         const sessionId = extractSessionId(
-          typeof body.sessionId === "string" ? body.sessionId : null
+          typeof body.sessionId === "string"
+            ? body.sessionId
+            : typeof querySession === "string"
+              ? querySession
+              : null
         );
-        const text = typeof body.text === "string" ? body.text : "";
+        if (typeof body.text !== "string") {
+          sendApiError(res, 400, "BAD_REQUEST");
+          return;
+        }
+        const text = body.text;
         const snapshot = await adapter.submitInput({
           sessionId,
           text,
@@ -428,8 +474,13 @@ export function startWebServer(options: StartWebServerOptions = {}): http.Server
 
       if (method === "POST" && pathname === "/api/session/reset") {
         const body = await readJsonBody(req);
+        const querySession = requestUrl.searchParams.get("session");
         const sessionId = extractSessionId(
-          typeof body.sessionId === "string" ? body.sessionId : null
+          typeof body.sessionId === "string"
+            ? body.sessionId
+            : typeof querySession === "string"
+              ? querySession
+              : null
         );
         const snapshot = await adapter.resetSession(sessionId);
         sendJson(res, 200, { snapshot });
@@ -438,8 +489,13 @@ export function startWebServer(options: StartWebServerOptions = {}): http.Server
 
       if (method === "POST" && pathname === "/api/rerun") {
         const body = await readJsonBody(req);
+        const querySession = requestUrl.searchParams.get("session");
         const sessionId = extractSessionId(
-          typeof body.sessionId === "string" ? body.sessionId : null
+          typeof body.sessionId === "string"
+            ? body.sessionId
+            : typeof querySession === "string"
+              ? querySession
+              : null
         );
         const snapshot = await adapter.rerunFromStart({
           sessionId,
@@ -458,6 +514,20 @@ export function startWebServer(options: StartWebServerOptions = {}): http.Server
 
       sendText(res, 404, "Not Found");
     } catch (error) {
+      if (error instanceof WebSessionApiError) {
+        if (error.errorCode === "FORBIDDEN") {
+          sendApiError(res, error.statusCode, "FORBIDDEN");
+          return;
+        }
+        if (error.errorCode === "SESSION_NOT_FOUND") {
+          sendApiError(res, error.statusCode, "SESSION_NOT_FOUND");
+          return;
+        }
+        if (error.errorCode === "ENGINE_BUSY") {
+          sendApiError(res, error.statusCode, "ENGINE_BUSY");
+          return;
+        }
+      }
       const runtimeError = toRuntimeError(error);
       const status = error instanceof RuntimeError ? error.httpStatus : runtimeError.httpStatus;
       sendJson(res, status, {

@@ -6,14 +6,14 @@
 - state_version: 2
 - last_updated: 2026-02-22
 - updated_by: human
-- update_reason: close prd-015
-- latest_delta_id: 20260222_113315_66126004
+- update_reason: close prd-016
+- latest_delta_id: 20260222_123951_04c3d986
 - git_base: origin/main
-- git_merge_base: f7686c488ae1d12bf2419d5b7bee2378c3c6df7c
-- git_head: dee88d1dd54087a09fb7475a17a96923b6cd10b3
-- git_head_short: dee88d1
-- git_branch: prd-015-chat-timeline-rendering
-- changed_files_sha256: 77b49f0498e241947fa2cdce940626d09568571ded17d73dd44ff8b178bc590b
+- git_merge_base: d634aacd7ee32ae84e2e30b681cc06997259bc3b
+- git_head: 91da6953d61a34dc09aad746ef61b1a2feaf7f9c
+- git_head_short: 91da695
+- git_branch: prd-016-session-management-panel
+- changed_files_sha256: cc47ae47e6a2d23af47223a6d694b409ca5f74251fbeea725896479000ac84df
 - typecheck_exit_code: 0
 - test_exit_code: 0
 
@@ -61,7 +61,7 @@ This clarification formalizes PRD-013 and Phase 6A alignment.
 - naming_rule: ABCD File Naming (LOCKED)
 
 ## Current Scope (Approved/Done)
-- prd_done: [PRD-002, PRD-001, PRD-003, PRD-004, PRD-007, prd-006, prd-005, prd-009, prd-008, PRD-010, PRD-011, prd-012a, PRD-012, prd-013, prd-014, prd-015]
+- prd_done: [PRD-002, PRD-001, PRD-003, PRD-004, PRD-007, prd-006, prd-005, prd-009, prd-008, PRD-010, PRD-011, prd-012a, PRD-012, prd-013, prd-014, prd-015, prd-016]
 - core_promoted:
   - PRD-001 (Create)
 - core_status: Partial; non-TOC core files removed during cleanup, recovery in progress

@@ -5,9 +5,13 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { LocalWebRuntimeAdapter } from "../../../src/adapters/web/web.runtime_adapter";
 import { RuntimeError } from "../../../runtime/error";
 import type { RuntimeRunResult } from "../../../runtime/orchestrator/run_request";
+import { WebSessionMetadataStore } from "../../../runtime/web/session_metadata.store";
 
 function makeRunResult(inputText: string): RuntimeRunResult {
   return {
@@ -28,13 +32,26 @@ function makeRunResult(inputText: string): RuntimeRunResult {
   };
 }
 
-test("in-flight guard: concurrent submit on same session returns SESSION_CONFLICT", async () => {
+function makeTempRepo(t: test.TestContext): string {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), "web-runtime-adapter-"));
+  fs.mkdirSync(path.join(repoRoot, "ops", "runtime"), { recursive: true });
+  t.after(() => {
+    fs.rmSync(repoRoot, { recursive: true, force: true });
+  });
+  return repoRoot;
+}
+
+test("in-flight guard: concurrent submit on same session returns SESSION_CONFLICT", async (t) => {
+  const repoRoot = makeTempRepo(t);
+  const metadataStore = new WebSessionMetadataStore({ baseDir: repoRoot });
   let release: () => void = () => {};
   const block = new Promise<void>((resolve) => {
     release = resolve;
   });
 
   const adapter = new LocalWebRuntimeAdapter({
+    repoPath: repoRoot,
+    metadataStore,
     runOnce: async (input) => {
       await block;
       return makeRunResult(input.inputText);
@@ -61,9 +78,13 @@ test("in-flight guard: concurrent submit on same session returns SESSION_CONFLIC
   await first;
 });
 
-test("hash mismatch: returns web guide and does not auto-rotate/reset", async () => {
+test("hash mismatch: returns web guide and does not auto-rotate/reset", async (t) => {
+  const repoRoot = makeTempRepo(t);
+  const metadataStore = new WebSessionMetadataStore({ baseDir: repoRoot });
   let resetCalls = 0;
   const adapter = new LocalWebRuntimeAdapter({
+    repoPath: repoRoot,
+    metadataStore,
     runOnce: async () => {
       throw new Error("SESSION_STATE_HASH_MISMATCH expected=a actual=b");
     },
@@ -91,8 +112,12 @@ test("hash mismatch: returns web guide and does not auto-rotate/reset", async ()
   assert.equal(resetCalls, 0);
 });
 
-test("snapshot DTO: exposes currentStepLabel string and no core graph fields", async () => {
+test("snapshot DTO: exposes currentStepLabel string and no core graph fields", async (t) => {
+  const repoRoot = makeTempRepo(t);
+  const metadataStore = new WebSessionMetadataStore({ baseDir: repoRoot });
   const adapter = new LocalWebRuntimeAdapter({
+    repoPath: repoRoot,
+    metadataStore,
     runOnce: async (input) => makeRunResult(input.inputText),
     getSessionSnapshot: () => ({ exists: false, state: null }),
   });

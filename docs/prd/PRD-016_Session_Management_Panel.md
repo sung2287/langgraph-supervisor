@@ -22,6 +22,20 @@
 - **Web-Only Meta Store**: 세션 요약 등 UI 전용 정보는 `ops/runtime/web_session_meta.json`에 별도 보관.
 - **Isolation**: UI 계층에서 직접적인 `fs` 모듈 사용 금지.
 
+### Override Isolation Clause (LOCK)
+<!-- PRD-016 Reinforcement Patch -->
+
+Provider / Model / Domain override values defined in PRD-017
+are execution-context parameters only.
+
+They MUST NOT be persisted in:
+- `session_state.json`
+- `web_session_meta.json`
+- Any server-side storage related to session metadata
+
+Sessions are file-based identifiers and remain
+independent from execution override parameters.
+
 ## 5. API Contracts (Brief)
 - `GET /api/sessions`: 웹 세션 목록 반환 (DTO). 해시 데이터 노출 금지.
 - `DELETE /api/session/:id`: 세션 백업 로테이션 (UTC 타임스탬프 충돌 방지 적용).
