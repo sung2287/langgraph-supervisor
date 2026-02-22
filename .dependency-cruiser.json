@@ -33,6 +33,21 @@
       "to": { "path": "^src/sandbox/" }
     },
     {
+      "name": "web-ui-must-not-import-core",
+      "severity": "error",
+      "from": { "path": "^src/adapters/web/ui/" },
+      "to": { "path": "^src/core/" }
+    },
+    {
+      "name": "web-ui-must-not-import-core-alias",
+      "severity": "error",
+      "from": { "path": "^src/adapters/web/ui/" },
+      "to": {
+        "path": "^@/core/",
+        "couldNotResolve": true
+      }
+    },
+    {
       "name": "no-circular-dependencies",
       "severity": "error",
       "from": {},

@@ -6,14 +6,14 @@
 - state_version: 2
 - last_updated: 2026-02-22
 - updated_by: human
-- update_reason: close prd-013
-- latest_delta_id: 20260222_070604_56766335
+- update_reason: close prd-014
+- latest_delta_id: 20260222_092210_1ed23254
 - git_base: origin/main
-- git_merge_base: 32bb38484e76ffa4cafad6e7dc94155eac1ff8e6
-- git_head: 6b1cba9bdb87241fd7e6928df7648ba0b3f6b7b3
-- git_head_short: 6b1cba9
-- git_branch: prd-013-web-ui-observer
-- changed_files_sha256: ab2fd2d6b7058cc888ae7429e113d78ca2f5d4ddc3e0bb482dee0794e94da85a
+- git_merge_base: bceba095bae55f81529426c481e868aac111876b
+- git_head: bceba095bae55f81529426c481e868aac111876b
+- git_head_short: bceba09
+- git_branch: main
+- changed_files_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 - typecheck_exit_code: 0
 - test_exit_code: 0
 
@@ -21,10 +21,32 @@
 - one_liner: 테스트 통제로 개발 의도를 고정하는 저작 시스템
 
 ## Non-Goals (Hard No)
-- ui: NO
+- ui:
+  - Core-level UI implementation: NO (Hard No)
+  - Business logic migration to UI: NO (Hard No)
+  - Adapter-level UI (Observer / Rendering only): ALLOWED
+  - UI must respect:
+      - Core-Zero-Mod
+      - DTO Isolation
+      - Server as SSOT
+      - No runtime contract modification
 - auth: NO
 - web_api: NO (Adapter PRD 전까지)
 - db_persistence: NO
+
+### Clarification — UI Governance Boundary
+The prohibition of "UI" applies strictly to:
+- Embedding UI concerns inside src/core/**
+- Allowing client-side authority over session, policy, or decision logic
+
+Adapter-level UI (Web Observer / React Rendering Layer)
+is permitted as long as it remains:
+- Projection-only (DTO-based)
+- Server-authoritative
+- Non-intrusive to Core runtime logic
+- Fully isolated from business rule execution
+
+This clarification formalizes PRD-013 and Phase 6A alignment.
 
 ## Locked Principles
 - sandbox_first: YES
@@ -39,7 +61,7 @@
 - naming_rule: ABCD File Naming (LOCKED)
 
 ## Current Scope (Approved/Done)
-- prd_done: [PRD-002, PRD-001, PRD-003, PRD-004, PRD-007, prd-006, prd-005, prd-009, prd-008, PRD-010, PRD-011, prd-012a, PRD-012, prd-013]
+- prd_done: [PRD-002, PRD-001, PRD-003, PRD-004, PRD-007, prd-006, prd-005, prd-009, prd-008, PRD-010, PRD-011, prd-012a, PRD-012, prd-013, prd-014]
 - core_promoted:
   - PRD-001 (Create)
 - core_status: Partial; non-TOC core files removed during cleanup, recovery in progress

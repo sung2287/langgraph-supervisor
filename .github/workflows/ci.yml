@@ -23,6 +23,21 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Node.js (push only)
+        if: github.event_name == 'push'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies (push only)
+        if: github.event_name == 'push'
+        run: npm ci
+
+      - name: Architecture check (depcruise)
+        if: github.event_name == 'push'
+        run: npm run arch:check
+
       - name: Compute changed files (push only)
         if: github.event_name == 'push'
         shell: bash
